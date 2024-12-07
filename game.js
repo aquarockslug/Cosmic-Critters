@@ -8,11 +8,33 @@ const green = rgb(0, 1, 0);
 const levelSize = vec2(5, 5);
 const center = vec2(levelSize.x / 2, levelSize.y / 2);
 const animals = [];
+const animalSpecies = [
+	"bee",
+	"camel",
+	"elephant",
+	"flamingo",
+	"giraffe",
+	"gorilla",
+	"horse",
+	"kangeroo",
+	"leopard",
+	"monkey",
+	"penguin",
+	"pig",
+	"ram",
+	"rhino",
+	"rooster",
+	"snake",
+	"tiger",
+	"turtle",
+	"zebra",
+];
 
 // % level %
-const scanLevel = () => animals.filter((a) => isHighlighted(toLevelPos(a.pos)));
+const scan = () => animals.filter((a) => isHighlighted(toLevelPos(a.pos)));
 const isHighlighted = (pos) => level()[pos.x + pos.y * levelSize.x];
 const toLevelPos = (pos) => vec2(Math.floor(pos.x), Math.floor(pos.y));
+const texturePath = (species) => `animals/${species}.svg`;
 const level = () => {
 	// a level where none of the tiles are highlighted
 	const emptyLevel = (newLevel = []) => {
@@ -33,15 +55,18 @@ const mouseOffLevel = () =>
 
 // % animals %
 const newAnimal = (pos) => {
-	animalSpecies = ["turtle", "cow", "snake", "worm"];
-	species = animalSpecies[Math.floor(Math.random() * animalSpecies.length)];
-	// TODO get image according to choosen species
 	startPos = () =>
 		vec2(
 			Math.random() < 0.5 ? -0.5 : levelSize.x + 0.5,
 			Math.floor(Math.random() * levelSize.y) + 0.5,
 		);
-	animals.push(new EngineObject(pos ? pos : startPos(), vec2(0.2, 0.2)));
+	animals.push(
+		new EngineObject(
+			pos ? pos : startPos(),
+			vec2(0.2),
+			tile(vec2(0), 1, Math.floor(Math.random() * animalSpecies.length)),
+		),
+	);
 };
 
 // % game %
@@ -62,7 +87,7 @@ function gameUpdate() {
 	// move all animals in animals list
 
 	if (mouseWasPressed(0)) {
-		scanned = scanLevel(animals);
+		scanned = scan();
 		if (scanned.length > 0) console.log(scanned);
 		// compare scanned to the set of all scanned species
 	}
@@ -74,9 +99,11 @@ function gameRender() {
 	drawRect(center, vec2(8), green);
 	drawRect(center, vec2(5.1), rgb(0, 0, 0));
 	drawRect(center, vec2(5), rgb(1, 1, 1));
+	drawRect(vec2(center.x, -0.8), vec2(4, 0.8), rgb(1, 0, 0));
+	// TODO jungle leaves covering sides where animals spawn
 
 	// renders a tile with a border if the mouse is over it
-	renderTile = (drawPos) => {
+	renderLevelTile = (drawPos) => {
 		if (mouseOffLevel()) drawRect(drawPos, vec2(1), green);
 		else if (isHighlighted(pos)) drawRect(drawPos, vec2(0.95), green);
 		else drawRect(drawPos, vec2(1), green);
@@ -84,8 +111,14 @@ function gameRender() {
 
 	const pos = vec2();
 	for (pos.x = levelSize.x; pos.x--; )
-		for (pos.y = levelSize.y; pos.y--; ) renderTile(pos.add(vec2(0.5)));
+		for (pos.y = levelSize.y; pos.y--; ) renderLevelTile(pos.add(vec2(0.5)));
 }
 function gameRenderPost() {}
-
-engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, gameRenderPost);
+engineInit(
+	gameInit,
+	gameUpdate,
+	gameUpdatePost,
+	gameRender,
+	gameRenderPost,
+	animalSpecies.map((name) => texturePath(name)),
+);
