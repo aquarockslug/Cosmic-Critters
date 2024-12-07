@@ -10,7 +10,9 @@ const center = vec2(levelSize.x / 2, levelSize.y / 2);
 const animals = [];
 
 // % level %
-const tileHighlighted = (pos) => level()[pos.x + pos.y * levelSize.x];
+const scanLevel = () => animals.filter((a) => isHighlighted(toLevelPos(a.pos)));
+const isHighlighted = (pos) => level()[pos.x + pos.y * levelSize.x];
+const toLevelPos = (pos) => vec2(Math.floor(pos.x), Math.floor(pos.y));
 const level = () => {
 	// a level where none of the tiles are highlighted
 	const emptyLevel = (newLevel = []) => {
@@ -20,11 +22,9 @@ const level = () => {
 	};
 	l = emptyLevel();
 	if (mouseOffLevel()) return l; // mouse not hovering over level area
-	l[levelPos(mousePos).x + levelPos(mousePos).y * levelSize.x] = true;
+	l[toLevelPos(mousePos).x + toLevelPos(mousePos).y * levelSize.x] = true;
 	return l;
 };
-const levelPos = (pos) => vec2(Math.floor(pos.x), Math.floor(pos.y));
-const mouse = () => levelPos(mousePos);
 const mouseOffLevel = () =>
 	mousePos.x < 0 ||
 	mousePos.y < 0 ||
@@ -44,15 +44,6 @@ const newAnimal = (pos) => {
 	animals.push(new EngineObject(pos ? pos : startPos(), vec2(0.2, 0.2)));
 };
 
-const scan = (scannedAnimals = []) => {
-	for (animal of animals) {
-		// TODO use a filter function
-		pos = vec2(Math.floor(animal.pos.x), Math.floor(animal.pos.y));
-		if (tileHighlighted(pos)) scannedAnimals.push(animal);
-	}
-	return scannedAnimals;
-};
-
 // % game %
 function gameInit() {
 	canvasFixedSize = vec2(720, 720);
@@ -60,6 +51,7 @@ function gameInit() {
 
 	newAnimal();
 	newAnimal(vec2(2.5, 2.5));
+	newAnimal(vec2(2.75, 2.75));
 
 	cameraPos = levelSize.scale(0.5).add(cameraOffset);
 	cameraScale = 500 / levelSize.y;
@@ -70,13 +62,10 @@ function gameUpdate() {
 	// move all animals in animals list
 
 	if (mouseWasPressed(0)) {
-		scannedNow = scan();
-		console.log(scannedNow);
-		// compare scannedNow to the set of all scanned species
+		scanned = scanLevel(animals);
+		if (scanned.length > 0) console.log(scanned);
+		// compare scanned to the set of all scanned species
 	}
-
-	// if mouse clicked:
-	// getActiveAnimals(), returns filtered animal list where (tileHighlighted(animal.levelPos))
 }
 function gameUpdatePost() {}
 function gameRender() {
@@ -89,7 +78,7 @@ function gameRender() {
 	// renders a tile with a border if the mouse is over it
 	renderTile = (drawPos) => {
 		if (mouseOffLevel()) drawRect(drawPos, vec2(1), green);
-		else if (tileHighlighted(pos)) drawRect(drawPos, vec2(0.95), green);
+		else if (isHighlighted(pos)) drawRect(drawPos, vec2(0.95), green);
 		else drawRect(drawPos, vec2(1), green);
 	};
 
