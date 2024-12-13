@@ -8,6 +8,9 @@ const green = rgb(0, 1, 0);
 animalTurnRange = 1;
 animalPulseLength = 2;
 animalSpeed = 3; // distance animals travel in one pulse
+animalSize = 0.25; // distance animals travel in one pulse
+animalResolution = 72;
+animals = [];
 
 animalPulse = null;
 startGame = () => {
@@ -16,27 +19,25 @@ startGame = () => {
 
 const levelSize = vec2(5, 5);
 const center = vec2(levelSize.x / 2, levelSize.y / 2);
-const texturePath = (species) => `animals/${species}.svg`;
 const animalSpecies = [
-	"bee",
-	"camel",
-	"elephant",
+	"orangutan",
 	"flamingo",
-	"giraffe",
+	"crocodile",
+	"snake",
+	"camel",
 	"gorilla",
-	"horse",
-	"kangeroo",
+	"rhino",
+	"tiger",
 	"leopard",
 	"monkey",
-	"penguin",
-	"pig",
-	"ram",
-	"rhino",
-	"rooster",
-	"snake",
-	"tiger",
+	"elephant",
 	"turtle",
+	"penguin",
+	"koala",
+	"giraffe",
 	"zebra",
+	"kangeroo",
+	"llama",
 ];
 
 // % level %
@@ -67,23 +68,23 @@ const renderLevelRect = (pos) => {
 	else drawRect(drawPos, vec2(1), green);
 };
 
+const newAnimal = (pos, spread = 0.5) =>
+	new EngineObject(
+		pos,
+		vec2(animalSize),
+		tile(vec2(0), animalResolution, randInt(0, animalSpecies.length)),
+		rand(Math.PI * (0.5 - spread / 2), Math.PI * (0.5 + spread / 2)) *
+			(center.x > pos.x ? 1 : -1),
+	);
+
 // % animals %
-const withNewAnimal = (animals, pos, spread = 0.5) => {
+const withNewAnimal = (animals, pos) => {
 	startPos = () =>
 		vec2(
 			Math.random() < 0.5 ? -0.1 : levelSize.x + 0.1,
 			Math.floor(Math.random() * levelSize.y) + 0.5,
 		);
-	start = pos ? pos : startPos();
-	animals.push(
-		new EngineObject(
-			start,
-			vec2(0.2),
-			tile(vec2(0), 1, rand(0, animalSpecies.length)),
-			rand(Math.PI * (0.5 - spread / 2), Math.PI * (0.5 + spread / 2)) *
-				(center.x > start.x ? 1 : -1),
-		),
-	);
+	animals.push(newAnimal(pos ? pos : startPos()));
 	return [...animals];
 };
 
@@ -105,7 +106,6 @@ const turnAnimal = (animal) => {
 function gameInit() {
 	canvasFixedSize = vec2(720, 720);
 	mainCanvas.style.background = backgroundColor;
-	animals = [];
 	cameraPos = levelSize.scale(0.5).add(cameraOffset);
 	cameraScale = 500 / levelSize.y;
 }
@@ -138,17 +138,20 @@ function gameRender() {
 	const pos = vec2();
 	for (pos.x = levelSize.x; pos.x--; )
 		for (pos.y = levelSize.y; pos.y--; ) renderLevelRect(pos);
+
+	drawTile(center, vec2(0.5), tile(vec2(0), 72, 0));
+	drawTile(vec2(0, 2.5), vec2(0.5), tile(vec2(0), 72, 1));
+	drawTile(vec2(5, 2.5), vec2(0.5), tile(vec2(0), 72, 2));
+
+	for (animal of animals) {
+		drawTile(animal.pos, vec2(1), animal.tileInfo);
+	}
 }
 function gameRenderPost() {
 	drawRect(vec2(center.x, -0.8), vec2(5, 1.5), green); // ui area
 	drawRect(vec2(center.x, -0.8), vec2(4, 0.8), rgb(1, 0, 0)); // tray
 }
-engineInit(
-	gameInit,
-	gameUpdate,
-	gameUpdatePost,
-	gameRender,
-	gameRenderPost,
-	animalSpecies.map((name) => texturePath(name)),
-);
+engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, gameRenderPost, [
+	"animals.png",
+]);
 startGame();
