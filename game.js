@@ -10,7 +10,8 @@ animalPulseLength = 2;
 animalSpeed = 3; // distance animals travel in one pulse
 animalSize = 0.25; // distance animals travel in one pulse
 animalResolution = 72;
-animals = [];
+animals = []; // animals currently on the screen
+scannedSpecies = new Set();
 
 animalPulse = null;
 startGame = () => {
@@ -68,11 +69,24 @@ const renderLevelRect = (pos) => {
 	else drawRect(drawPos, vec2(1), green);
 };
 
+// % game %
+const gameOver = () => console.log("game over");
+const getSpecies = (animal) =>
+	animalSpecies[Math.floor(animal.tileInfo.pos.x / animalResolution)];
+// compare scanned to the set of all scanned species
+const updateScannedSpecies = (scannedAnimals) => {
+	for (species of scannedAnimals.map((a) => getSpecies(a)))
+		scannedSpecies.add(species);
+	// TODO update species ui
+	console.log(scannedSpecies);
+};
+const animalTile = (animalIndex = 0) =>
+	tile(vec2(animalResolution * animalIndex, 0), animalResolution, 0);
 const newAnimal = (pos, spread = 0.5) =>
 	new EngineObject(
 		pos,
-		vec2(animalSize),
-		tile(vec2(0), animalResolution, randInt(0, animalSpecies.length)),
+		vec2(0),
+		animalTile(randInt(0, animalSpecies.length)),
 		rand(Math.PI * (0.5 - spread / 2), Math.PI * (0.5 + spread / 2)) *
 			(center.x > pos.x ? 1 : -1),
 	);
@@ -110,7 +124,9 @@ function gameInit() {
 	cameraScale = 500 / levelSize.y;
 }
 function gameUpdate() {
-	// randomly spawn animal at interval
+	if (scannedSpecies.length === animalSpecies.length) gameOver();
+
+	// randomly spawn animal at pulse interval
 	if (animalPulse?.elapsed()) {
 		offLevelAnimals = animals.filter((a) => offLevel(a.pos));
 		animals = withNewAnimal(withNewAnimal(withNewAnimal(animals)))
@@ -122,8 +138,7 @@ function gameUpdate() {
 
 	if (mouseWasPressed(0) && animals.length > 0) {
 		scanned = scan(animals);
-		if (scanned.length > 0) console.log(scanned);
-		// compare scanned to the set of all scanned species
+		if (scanned.length > 0) updateScannedSpecies(scanned);
 	}
 }
 function gameUpdatePost() {}
@@ -139,16 +154,10 @@ function gameRender() {
 	for (pos.x = levelSize.x; pos.x--; )
 		for (pos.y = levelSize.y; pos.y--; ) renderLevelRect(pos);
 
-	drawTile(center, vec2(0.5), tile(vec2(0), 72, 0));
-	drawTile(vec2(0, 2.5), vec2(0.5), tile(vec2(0), 72, 1));
-	drawTile(vec2(5, 2.5), vec2(0.5), tile(vec2(0), 72, 2));
-
-	for (animal of animals) {
-		drawTile(animal.pos, vec2(1), animal.tileInfo);
-	}
+	for (animal of animals) drawTile(animal.pos, vec2(0.5), animal.tileInfo);
 }
 function gameRenderPost() {
-	drawRect(vec2(center.x, -0.8), vec2(5, 1.5), green); // ui area
+	drawRect(vec2(center.x, -0.8), vec2(10, 1.5), green); // ui area
 	drawRect(vec2(center.x, -0.8), vec2(4, 0.8), rgb(1, 0, 0)); // tray
 }
 engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, gameRenderPost, [
