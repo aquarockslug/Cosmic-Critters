@@ -12,7 +12,7 @@ animalSpeed = 3; // distance animals travel in one pulse
 animalSize = 0.25; // distance animals travel in one pulse
 animalResolution = 72;
 animals = []; // animals currently on the screen
-scannedSpecies = new Set();
+scannedSpecies = new Set(); // animals that will appear hightlighted in the tray
 
 animalPulse = null;
 startGame = () => {
@@ -42,9 +42,10 @@ const animalSpecies = [
 	"llama",
 ];
 
-// % level %
+const gameOver = () => console.log("game over");
 const isHighlighted = (pos) => level()[pos.x + pos.y * levelSize.x];
 const toLevelPos = (pos) => vec2(Math.floor(pos.x), Math.floor(pos.y));
+// return animals on the currently highlighted tile
 const scan = (animals) =>
 	animals.filter((a) => isHighlighted(toLevelPos(a.pos)));
 const level = () => {
@@ -62,44 +63,41 @@ const emptyLevel = (newLevel = []) => {
 const mouseOffLevel = () => offLevel(mousePos);
 const offLevel = (pos) =>
 	pos.x < 0 || pos.y < 0 || pos.x > levelSize.x || pos.y > levelSize.y;
-// renders a tile with a border if the mouse is over it
+// renders a tile, with a border if the mouse is over it
 const drawLevelRect = (pos) => {
 	drawPos = pos.add(vec2(0.5));
 	if (mouseOffLevel()) drawRect(drawPos, vec2(1), grassGreen);
 	else if (isHighlighted(pos)) drawRect(drawPos, vec2(0.95), grassGreen);
 	else drawRect(drawPos, vec2(1), grassGreen);
 };
-const drawTrayAnimal = (animalIndex) => {
-	// TODO draw facing the correct direction
-	// TODO shorten code length
-	// color = isScanned(getSpecies(animalIndex)) ? rgb(0, 0, 0) : rgb(1, 1, 1);
 
-	if (animalIndex > animalSpecies.length / 2 - 1)
+// % species %
+const drawTraySpecies = (species, trayPos = vec2(0.9, -0.65)) => {
+	color = isScanned(species) ? rgb(1, 1, 1) : rgb(0, 0, 0);
+	index = animalSpecies.indexOf(species);
+	params = [vec2(0.4), animalTile(index), color];
+
+	// top row
+	if (index > animalSpecies.length / 2 - 1)
 		drawTile(
-			vec2(0.9 + 0.4 * (animalIndex - animalSpecies.length / 2), -1.15),
-			vec2(0.4),
-			animalTile(animalIndex),
-			rgb(0, 0, 0),
+			vec2(
+				trayPos.x + 0.4 * (index - animalSpecies.length / 2),
+				trayPos.y - 0.5,
+			),
+			...params,
 		);
-	else
-		drawTile(
-			vec2(0.9 + 0.4 * animalIndex, -0.65),
-			vec2(0.4),
-			animalTile(animalIndex),
-			rgb(0, 0, 0),
-		);
+	// bottom row
+	else drawTile(vec2(trayPos.x + 0.4 * index, trayPos.y), ...params);
 };
-const inScanned = (species) => scannedAnimals.includes(species);
-const gameOver = () => console.log("game over");
+const isScanned = (species) => scannedSpecies.has(species);
 const getSpecies = (animal) =>
 	animalSpecies[Math.floor(animal.tileInfo.pos.x / animalResolution)];
-// compare scanned to the set of all scanned species
-const updateScannedSpecies = (scannedAnimals) => {
-	for (species of scannedAnimals.map((a) => getSpecies(a)))
+const updateScannedSpecies = (animals) => {
+	for (species of animals.map((a) => getSpecies(a)))
 		scannedSpecies.add(species);
-	// TODO set color of animal in species ui
-	console.log(scannedSpecies);
 };
+
+// % animals %
 const animalTile = (animalIndex = 0) =>
 	tile(vec2(animalResolution * animalIndex, 0), animalResolution, 0);
 const newAnimal = (pos, spread = 0.5) =>
@@ -110,8 +108,6 @@ const newAnimal = (pos, spread = 0.5) =>
 		rand(Math.PI * (0.5 - spread / 2), Math.PI * (0.5 + spread / 2)) *
 			(center.x > pos.x ? 1 : -1),
 	);
-
-// % animals %
 const withNewAnimal = (animals, pos) => {
 	startPos = () =>
 		vec2(
@@ -137,6 +133,11 @@ const turnAnimal = (animal) => {
 	return animal;
 };
 
+const pulseAnimals = (animals) =>
+	withNewAnimal(withNewAnimal(withNewAnimal(animals)))
+		.filter((a) => !offLevelAnimals.includes(a))
+		.map((a) => turnAnimal(a));
+
 // % game %
 function gameInit() {
 	canvasFixedSize = vec2(720, 720);
@@ -150,9 +151,7 @@ function gameUpdate() {
 	// randomly spawn animal at pulse interval
 	if (animalPulse?.elapsed()) {
 		offLevelAnimals = animals.filter((a) => offLevel(a.pos));
-		animals = withNewAnimal(withNewAnimal(withNewAnimal(animals)))
-			.filter((a) => !offLevelAnimals.includes(a))
-			.map((a) => turnAnimal(a));
+		animals = pulseAnimals(animals);
 		offLevelAnimals.map((a) => a.destroy());
 		animalPulse.set(animalPulseLength);
 	} else animals = animals.map((a) => moveAnimal(a));
@@ -180,7 +179,8 @@ function gameRender() {
 function gameRenderPost() {
 	drawRect(vec2(center.x, -0.9), vec2(10, 1.6), grassGreen); // ui area
 	drawRect(vec2(center.x, -1.1), vec2(4, 1.6), dirtBrown); // tray
-	for (let i = 0; i < animalSpecies.length; i++) drawTrayAnimal(i);
+	for (let i = 0; i < animalSpecies.length; i++)
+		drawTraySpecies(animalSpecies[i]);
 }
 engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, gameRenderPost, [
 	"animals.png",
