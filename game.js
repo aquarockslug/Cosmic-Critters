@@ -6,6 +6,7 @@ const scoreTimerDisplay = document.getElementById("scoreTimerDisplay");
 const backgroundColor = hsl(0, 0, 0.2);
 const grassGreen = rgb(0.34, 0.49, 0.27);
 const dirtBrown = rgb(0.61, 0.46, 0.33);
+const spaceBlue = rgb(0.32, 0.61, 0.6);
 
 animalTurnRange = 1;
 animalPulseLength = 2;
@@ -24,6 +25,7 @@ startGame = () => {
 
 const levelSize = vec2(5, 5);
 const center = vec2(levelSize.x / 2, levelSize.y / 2);
+let ufoPos = center;
 const animalSpecies = [
 	"orangutan",
 	"flamingo",
@@ -48,33 +50,46 @@ const animalSpecies = [
 const gameOver = () => console.log("game over");
 const isHighlighted = (pos) => level()[pos.x + pos.y * levelSize.x];
 const toLevelPos = (pos) => vec2(Math.floor(pos.x), Math.floor(pos.y));
-// return animals on the currently highlighted tile
+const mouseOffLevel = () => offLevel(mousePos);
+// return animals which are on the currently highlighted tile
 const scan = (animals) =>
 	animals.filter((a) => isHighlighted(toLevelPos(a.pos)));
+const offLevel = (pos) =>
+	pos.x < 0 || pos.y < 0 || pos.x > levelSize.x || pos.y > levelSize.y;
 const level = () => {
-	// a level where none of the tiles are highlighted
 	l = emptyLevel();
-	if (mouseOffLevel()) return l; // mouse not hovering over level area
+	if (mouseOffLevel()) return l;
 	l[toLevelPos(mousePos).x + toLevelPos(mousePos).y * levelSize.x] = true;
 	return l;
 };
+// a level where none of the tiles are highlighted
 const emptyLevel = (newLevel = []) => {
 	for (x = levelSize.x; x--; )
 		for (y = levelSize.y; y--; ) newLevel[x + y * levelSize.x] = false;
 	return newLevel;
 };
-const mouseOffLevel = () => offLevel(mousePos);
-const offLevel = (pos) =>
-	pos.x < 0 || pos.y < 0 || pos.x > levelSize.x || pos.y > levelSize.y;
 // renders a tile, with a border if the mouse is over it
 const drawLevelRect = (pos) => {
 	drawPos = pos.add(vec2(0.5));
-	if (mouseOffLevel()) drawRect(drawPos, vec2(1), grassGreen);
+	if (mouseOffLevel() || animalPulse == null)
+		drawRect(drawPos, vec2(1), grassGreen);
 	else if (isHighlighted(pos)) drawRect(drawPos, vec2(0.95), grassGreen);
 	else drawRect(drawPos, vec2(1), grassGreen);
 };
+const updateScoreTimerDisplay = () => {
+	minute = Math.floor(scoreTimer.get() / 60);
+	second = Math.floor(scoreTimer.get() % 60);
+	scoreTimerDisplay.innerText = `${minute < 10 ? "0" : ""}${minute}:${second < 10 ? "0" : ""}${second}`;
+};
 
 // % species %
+const isScanned = (species) => scannedSpecies.has(species);
+const getSpecies = (animal) =>
+	animalSpecies[Math.floor(animal.tileInfo.pos.x / animalResolution)];
+const updateScannedSpecies = (animals) => {
+	for (species of animals.map((a) => getSpecies(a)))
+		scannedSpecies.add(species);
+};
 const drawTraySpecies = (species, trayPos = vec2(0.9, -0.65)) => {
 	color = isScanned(species) ? rgb(1, 1, 1) : rgb(0, 0, 0);
 	index = animalSpecies.indexOf(species);
@@ -91,13 +106,6 @@ const drawTraySpecies = (species, trayPos = vec2(0.9, -0.65)) => {
 		);
 	// bottom row
 	else drawTile(vec2(trayPos.x + 0.4 * index, trayPos.y), ...params);
-};
-const isScanned = (species) => scannedSpecies.has(species);
-const getSpecies = (animal) =>
-	animalSpecies[Math.floor(animal.tileInfo.pos.x / animalResolution)];
-const updateScannedSpecies = (animals) => {
-	for (species of animals.map((a) => getSpecies(a)))
-		scannedSpecies.add(species);
 };
 
 // % animals %
@@ -137,15 +145,9 @@ const turnAnimal = (animal) => {
 };
 
 const pulseAnimals = (animals) =>
-	withNewAnimal(withNewAnimal(withNewAnimal(animals)))
+	withNewAnimal(withNewAnimal(withNewAnimal(withNewAnimal(animals))))
 		.filter((a) => !offLevelAnimals.includes(a))
 		.map((a) => turnAnimal(a));
-
-const updateScoreTimerDisplay = () => {
-	minute = Math.floor(scoreTimer.get() / 60);
-	second = Math.floor(scoreTimer.get() % 60);
-	scoreTimerDisplay.innerText = `${minute < 10 ? "0" : ""}${minute}:${second < 10 ? "0" : ""}${second}`;
-};
 
 // % game %
 function gameInit() {
@@ -155,11 +157,14 @@ function gameInit() {
 	cameraScale = 500 / levelSize.y;
 }
 function gameUpdate() {
-	if (animalPulse == null) return; // paused
+	if (animalPulse == null) {
+		ufoPos = center; // paused
+		return;
+	}
+	ufoPos = mousePos;
 	if (scannedSpecies.size === animalSpecies.length) gameOver();
 
-	// randomly spawn animal at pulse interval
-	if (animalPulse?.elapsed()) {
+	if (animalPulse.elapsed()) {
 		offLevelAnimals = animals.filter((a) => offLevel(a.pos));
 		animals = pulseAnimals(animals);
 		offLevelAnimals.map((a) => a.destroy());
@@ -178,25 +183,25 @@ function gameRender() {
 	// background
 	drawRect(cameraPos.subtract(cameraOffset), levelSize, hsl(0, 0, 0));
 	drawRect(center, vec2(10), grassGreen);
-	drawRect(center, vec2(5.1), dirtBrown);
-	drawRect(center, vec2(5), rgb(1, 1, 1)); // highlight tiles
-	// TODO jungle leaves covering sides where animals spawn
+	drawRect(center, vec2(5.05), dirtBrown);
+	drawRect(center, vec2(5), spaceBlue); // tile highlighting
+	// TODO jungle leaves covering sides where animals appear
 
-	// level
 	const pos = vec2();
 	for (pos.x = levelSize.x; pos.x--; )
 		for (pos.y = levelSize.y; pos.y--; ) drawLevelRect(pos);
 
-	for (animal of animals) drawTile(animal.pos, vec2(0.5), animal.tileInfo);
+	animals.map((a) => drawTile(a.pos, vec2(0.5), a.tileInfo));
+	drawTile(ufoPos, vec2(0.5), tile(vec2(0), animalResolution, 1));
 }
 function gameRenderPost() {
 	drawRect(vec2(center.x, -0.9), vec2(10, 1.6), grassGreen); // ui area
-	drawRect(vec2(center.x, -1.1), vec2(4.05, 1.65), rgb(0, 0, 0)); // tray border
+	drawRect(vec2(center.x, -1.1), vec2(4.02, 1.62), rgb(0, 0, 0)); // tray border
 	drawRect(vec2(center.x, -1.1), vec2(4, 1.6), dirtBrown); // tray
-	for (let i = 0; i < animalSpecies.length; i++)
-		drawTraySpecies(animalSpecies[i]);
+	animalSpecies.map((a) => drawTraySpecies(a));
 }
 engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, gameRenderPost, [
 	"animals.png",
+	"ufo.png",
 ]);
 // startGame();

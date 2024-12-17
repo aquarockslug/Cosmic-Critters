@@ -7,28 +7,36 @@
   <style>
     :root {
       --dirt-brown: rgb(156, 117, 84);
+      --space-blue: rgb(84, 156, 153);
     }
-    .topDiv {
-      position: absolute;
-      z-index: 1;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    body {
+      cursor: none;
+    }
+    button {
+      background-color: var(--space-blue);
     }
     .menuDiv {
       gap: 20px;
       padding: 30px;
+      cursor: auto;
       display: flex;
       align-items: center;
       flex-direction: column;
-      border: 3px solid black;
       background-color: var(--dirt-brown);
+    }
+    #floatingDiv {
+      position: absolute;
+      z-index: 1;
+      width: 100%;
+      height: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #scoreTimerDisplay {
       position: absolute;
-      top: 0px;
+      top: 10px;
+      background-color: var(--space-blue);
     }
     #pauseButton {
       display: none;
@@ -36,26 +44,31 @@
       align-items: center;
       left: 10px;
       top: 10px;
-      height: 15px;
     }
   </style>
 </head>
 <body>
-  <div class="topDiv">
-    <!-- TODO add game over menu -->
-    <h1 id="scoreTimerDisplay">00:00</h1>
-    <button id="pauseButton" onclick="pause()">Pause</button>
-    <div id="pauseMenu" class="menuDiv" style="display: none">
+  <div id="floatingDiv">
+    <div id="scoreTimerDisplay" class="box"><b>00:00</b></div>
+    <button id="pauseButton" onclick="pause()">Paused</button>
+    <div id="pauseMenu" class="menuDiv box" style="display: none">
       <b style="font-size: 50px">Pause</b>
-      <p>catch one of each species of animal!</p>
+      <p>scan an animal from each species!</p>
       <div>
         <button onclick="restart()">Restart</button>
         <button onclick="unpause()">Continue</button>
       </div>
     </div>
-    <div id="mainMenu" class="menuDiv">
+    <div id="endMenu" class="menuDiv box" style="display: none">
+      <b id="finalTimeDisplay" style="font-size: 50px">00:00</b>
+      <p>all of the animals have been scanned into the database!</p>
+      <div>
+        <button onclick="start()">Play Again</button>
+      </div>
+    </div>
+    <div id="mainMenu" class="menuDiv box">
       <b style="font-size: 50px">Species Scramble</b>
-      <p>catch one of each species of animal!</p>
+      <p>Your mission is to scan each species of animal</p>
       <div>
         <button onclick="start()">Start</button>
       </div>
@@ -71,6 +84,7 @@
     var pulsePausedAt = null;
     var scoreTimerPausedAt = null;
     const pause = () => {
+      floatingDiv.style.cursor = "auto";
       pauseButton.style.display = "none";
       pulsePausedAt = animalPulse.get() * -1;
       scoreTimerPausedAt = scoreTimer.get() * -1;
@@ -78,10 +92,11 @@
       animalPulse = null;
     };
     const unpause = () => {
+      floatingDiv.style.cursor = "none";
       pauseButton.style.display = "flex";
+      pauseMenuVisible(false);
       animalPulse = new Timer(pulsePausedAt);
       scoreTimer = new Timer(scoreTimerPausedAt);
-      pauseMenuVisible(false);
     };
     const restart = () => {
       pauseMenuVisible(false);
@@ -89,6 +104,7 @@
       animals = [];
     };
     const start = () => {
+      floatingDiv.style.cursor = "none";
       pauseButton.style.display = "flex";
       mainMenuVisible(false);
       pauseMenuVisible(false);
