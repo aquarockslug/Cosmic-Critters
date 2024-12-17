@@ -1,95 +1,99 @@
-<!DOCTYPE html><head>
+<!doctype html>
+<head>
   <title>Species Scramble</title>
-  <meta name=apple-mobile-web-app-capable content=yes>
-  <meta name=mobile-web-app-capable content=yes>
-  <link rel="stylesheet" href="tiny-brutalism.css">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="stylesheet" href="tiny-brutalism.css" />
   <style>
-    :root { --dirt-brown: rgb(156, 117, 84) }
-    .topDiv
-    {
-        position: absolute;
-        z-index: 1;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    :root {
+      --dirt-brown: rgb(156, 117, 84);
     }
-    .menuDiv
-    {
-        gap: 20px;
-        padding: 30px;
-        display: flex;
-        align-items: center;
-        flex-direction: column;
-        border: 3px solid black;
-    	background-color: var(--dirt-brown);
+    .topDiv {
+      position: absolute;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    #scoreTimerDisplay
-    {
-    	position: absolute;
-    	top: 0px;
+    .menuDiv {
+      gap: 20px;
+      padding: 30px;
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+      border: 3px solid black;
+      background-color: var(--dirt-brown);
+    }
+    #scoreTimerDisplay {
+      position: absolute;
+      top: 0px;
     }
     #pauseButton {
-	display: none;
-	position: absolute;
-	align-items: center;
-	left: 10px;
-	top: 10px;
-	height: 15px;
+      display: none;
+      position: absolute;
+      align-items: center;
+      left: 10px;
+      top: 10px;
+      height: 15px;
     }
   </style>
 </head>
 <body>
   <div class="topDiv">
-	  <!-- TODO add game over menu -->
+    <!-- TODO add game over menu -->
     <h1 id="scoreTimerDisplay">00:00</h1>
     <button id="pauseButton" onclick="pause()">Pause</button>
     <div id="pauseMenu" class="menuDiv" style="display: none">
-      <b style="font-size:50px">Pause</b>
-      <p> catch one of each species of animal! </p>
+      <b style="font-size: 50px">Pause</b>
+      <p>catch one of each species of animal!</p>
       <div>
         <button onclick="restart()">Restart</button>
         <button onclick="unpause()">Continue</button>
       </div>
     </div>
     <div id="mainMenu" class="menuDiv">
-      <b style="font-size:50px">Species Scramble</b>
-      <p> catch one of each species of animal! </p>
+      <b style="font-size: 50px">Species Scramble</b>
+      <p>catch one of each species of animal!</p>
       <div>
         <button onclick="start()">Start</button>
       </div>
     </div>
   </div>
-</div>
-</div>
-<script src=littlejs.js></script>
-<script src=game.js></script>
-<script>
-  const pauseMenuVisible =(visible)=> pauseMenu.style.display = visible ? 'flex' : 'none';
-  const mainMenuVisible =(visible)=> mainMenu.style.display = visible ? 'flex' : 'none';
-  var pulsePausedAt = null
-  var scoreTimerPausedAt = null
-  const pause =()=> {
-		pauseButton.style.display = 'none'
-  		pulsePausedAt = animalPulse.get() * -1;
-  		scoreTimerPausedAt = scoreTimer.get() * -1;
-  		pauseMenuVisible(true);
-  		animalPulse = null;
-  	}
-  const unpause =()=> {
-		pauseButton.style.display = 'flex'
-  		animalPulse = new Timer(pulsePausedAt);
-  		scoreTimer = new Timer(scoreTimerPausedAt);
-  		pauseMenuVisible(false);
-  	}
-  const restart =()=> { pauseMenuVisible(false); mainMenuVisible(true); animals = [] }
-  const start = () => {
-	pauseButton.style.display = 'flex'
-  	mainMenuVisible(false)
-  	pauseMenuVisible(false)
-      	animalPulse = new Timer(animalPulseLength);
-  	scoreTimer = new Timer(0);
-  };
-</script>
+  <script src="littlejs.js"></script>
+  <script src="game.js"></script>
+  <script>
+    const pauseMenuVisible = (visible) =>
+      (pauseMenu.style.display = visible ? "flex" : "none");
+    const mainMenuVisible = (visible) =>
+      (mainMenu.style.display = visible ? "flex" : "none");
+    var pulsePausedAt = null;
+    var scoreTimerPausedAt = null;
+    const pause = () => {
+      pauseButton.style.display = "none";
+      pulsePausedAt = animalPulse.get() * -1;
+      scoreTimerPausedAt = scoreTimer.get() * -1;
+      pauseMenuVisible(true);
+      animalPulse = null;
+    };
+    const unpause = () => {
+      pauseButton.style.display = "flex";
+      animalPulse = new Timer(pulsePausedAt);
+      scoreTimer = new Timer(scoreTimerPausedAt);
+      pauseMenuVisible(false);
+    };
+    const restart = () => {
+      pauseMenuVisible(false);
+      mainMenuVisible(true);
+      animals = [];
+    };
+    const start = () => {
+      pauseButton.style.display = "flex";
+      mainMenuVisible(false);
+      pauseMenuVisible(false);
+      animalPulse = new Timer(animalPulseLength);
+      scoreTimer = new Timer(0);
+    };
+  </script>
 </body>
