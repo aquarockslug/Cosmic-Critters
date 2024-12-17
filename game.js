@@ -2,6 +2,7 @@
 
 setCanvasPixelated(false);
 const cameraOffset = vec2(0, -0.5);
+const scoreTimerDisplay = document.getElementById("scoreTimerDisplay");
 const backgroundColor = hsl(0, 0, 0.2);
 const grassGreen = rgb(0.34, 0.49, 0.27);
 const dirtBrown = rgb(0.61, 0.46, 0.33);
@@ -15,8 +16,10 @@ animals = []; // animals currently on the screen
 scannedSpecies = new Set(); // animals that will appear hightlighted in the tray
 
 animalPulse = null;
+scoreTimer = null;
 startGame = () => {
 	animalPulse = new Timer(animalPulseLength);
+	scoreTimer = new Timer(0);
 };
 
 const levelSize = vec2(5, 5);
@@ -138,6 +141,12 @@ const pulseAnimals = (animals) =>
 		.filter((a) => !offLevelAnimals.includes(a))
 		.map((a) => turnAnimal(a));
 
+const updateScoreTimerDisplay = () => {
+	minute = Math.floor(scoreTimer.get() / 60);
+	second = Math.floor(scoreTimer.get() % 60);
+	scoreTimerDisplay.innerText = `${minute < 10 ? "0" : ""}${minute}:${second < 10 ? "0" : ""}${second}`;
+};
+
 // % game %
 function gameInit() {
 	canvasFixedSize = vec2(720, 720);
@@ -146,7 +155,8 @@ function gameInit() {
 	cameraScale = 500 / levelSize.y;
 }
 function gameUpdate() {
-	if (scannedSpecies.length === animalSpecies.length) gameOver();
+	if (animalPulse == null) return; // paused
+	if (scannedSpecies.size === animalSpecies.length) gameOver();
 
 	// randomly spawn animal at pulse interval
 	if (animalPulse?.elapsed()) {
@@ -160,6 +170,8 @@ function gameUpdate() {
 		scanned = scan(animals);
 		if (scanned.length > 0) updateScannedSpecies(scanned);
 	}
+
+	updateScoreTimerDisplay();
 }
 function gameUpdatePost() {}
 function gameRender() {
@@ -170,6 +182,7 @@ function gameRender() {
 	drawRect(center, vec2(5), rgb(1, 1, 1)); // highlight tiles
 	// TODO jungle leaves covering sides where animals spawn
 
+	// level
 	const pos = vec2();
 	for (pos.x = levelSize.x; pos.x--; )
 		for (pos.y = levelSize.y; pos.y--; ) drawLevelRect(pos);
@@ -178,6 +191,7 @@ function gameRender() {
 }
 function gameRenderPost() {
 	drawRect(vec2(center.x, -0.9), vec2(10, 1.6), grassGreen); // ui area
+	drawRect(vec2(center.x, -1.1), vec2(4.05, 1.65), rgb(0, 0, 0)); // tray border
 	drawRect(vec2(center.x, -1.1), vec2(4, 1.6), dirtBrown); // tray
 	for (let i = 0; i < animalSpecies.length; i++)
 		drawTraySpecies(animalSpecies[i]);
@@ -185,4 +199,4 @@ function gameRenderPost() {
 engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, gameRenderPost, [
 	"animals.png",
 ]);
-startGame();
+// startGame();
