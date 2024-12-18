@@ -87,7 +87,7 @@
     var pulsePausedAt = null;
     var scoreTimerPausedAt = null;
     const pause = () => {
-      sfx.buttonPress.play()
+      sfx.buttonPress.play();
       floatingDiv.style.cursor = "auto";
       pauseButton.style.display = "none";
       pulsePausedAt = animalPulse.get() * -1;
@@ -96,7 +96,7 @@
       animalPulse = null;
     };
     const unpause = () => {
-      sfx.buttonPress.play()
+      sfx.buttonPress.play();
       floatingDiv.style.cursor = "none";
       pauseButton.style.display = "flex";
       pauseMenuVisible(false);
@@ -104,26 +104,27 @@
       scoreTimer = new Timer(scoreTimerPausedAt);
     };
     const restart = () => {
-      sfx.buttonPress.play()
+      sfx.buttonPress.play();
       pauseMenuVisible(false);
       mainMenuVisible(true);
       animals = [];
     };
     const start = () => {
-      sfx.buttonPress.play()
+      sfx.buttonPress.play();
       floatingDiv.style.cursor = "none";
       pauseButton.style.display = "flex";
       mainMenuVisible(false);
       pauseMenuVisible(false);
       endMenuVisible(false);
-      startGame()
+      startGame();
     };
     const gameOver = () => {
-	    mainMenuVisible(false);
-	    pauseMenuVisible(false);
-	    endMenuVisible(true);
-	    finalTimeDisplay.innerHTML = scoreTimerDisplay.innerHTML
-	    endGame()
-    }
+      floatingDiv.style.cursor = "auto";
+      finalTimeDisplay.innerHTML = scoreTimerDisplay.innerHTML;
+      mainMenuVisible(false);
+      pauseMenuVisible(false);
+      endMenuVisible(true);
+      endGame();
+    };
   </script>
 </body>

@@ -1,37 +1,36 @@
 // animal scan by Aquarock
 
-setCanvasPixelated(false);
 const cameraOffset = vec2(0, -0.5);
 const scoreTimerDisplay = document.getElementById("scoreTimerDisplay");
 const backgroundColor = hsl(0, 0, 0.2);
 const grassGreen = rgb(0.34, 0.49, 0.27);
 const dirtBrown = rgb(0.61, 0.46, 0.33);
 const spaceBlue = rgb(0.32, 0.61, 0.6);
-
 const levelSize = vec2(5, 5);
 const center = vec2(levelSize.x / 2, levelSize.y / 2);
+const animalTurnRange = 1;
+const animalPulseLength = 2;
+const animalSpeed = 4; // distance animals travel in one pulse
+const animalSize = 0.25; // distance animals travel in one pulse
+const animalResolution = 72;
+const treeResolution = 618;
+const newAnimalCount = 6; // amount of animals that appear each pulse
+let animals = []; // animals currently on the screen
+let scanned = []; // animals currently being scanned
+let scannedSpecies = new Set(); // animals that will appear hightlighted in the tray
 let ufoPos = center;
-animalTurnRange = 1;
-animalPulseLength = 2;
-animalSpeed = 4; // distance animals travel in one pulse
-animalSize = 0.25; // distance animals travel in one pulse
-animalResolution = 72;
-newAnimalCount = 5; // amount of animals that appear each pulse
-animals = []; // animals currently on the screen
-scanned = []; // animals currently being scanned
-scannedSpecies = new Set(); // animals that will appear hightlighted in the tray
-
-animalPulse = null;
-scoreTimer = null;
+let animalPulse = null;
+let scoreTimer = null;
 const startGame = () => {
 	animalPulse = new Timer(animalPulseLength / 2);
 	scoreTimer = new Timer(0);
+	scannedSpecies = new Set();
 };
 const endGame = () => {
 	animalPulse = null;
 	animals = [];
 };
-
+const sourceImages = ["animals.png", "ufo.png", "tree.png"];
 const animalSpecies = [
 	"orangutan",
 	"flamingo",
@@ -58,7 +57,6 @@ const sfx = {
 	"newSpecies": new Sound([.2,,531,.08,.29,.36,,.2,,,472,.06,.09,,,,,.8,.16,,846]),
 	"buttonPress": new Sound([.5,,635,.01,.04,.02,3,4.3,,,,,.05,,,,,.61,.01,,-1312])
 }
-
 const isHighlighted = (pos) => level()[pos.x + pos.y * levelSize.x];
 const toLevelPos = (pos) => vec2(Math.floor(pos.x), Math.floor(pos.y));
 const mouseOffLevel = () => offLevel(mousePos);
@@ -92,6 +90,27 @@ const updateScoreTimerDisplay = () => {
 	second = Math.floor(scoreTimer.get() % 60);
 	scoreTimerDisplay.innerText = `${minute < 10 ? "0" : ""}${minute}:${second < 10 ? "0" : ""}${second}`;
 };
+const drawTree = (pos) =>
+	drawTile(
+		pos.add(vec2(0, 0.5)),
+		vec2(1.5),
+		tile(vec2(0), vec2(treeResolution), 2),
+	);
+const plantTrees = (pos, row, trees = [], spread = vec2(0.75, 1.25)) =>
+	row
+		? plantTrees(
+				pos,
+				row - 1,
+				trees.concat(
+					[
+						rand(-spread.x, -0.25), // left side
+						rand(levelSize.x, levelSize.x + spread.x + 0.25), // right side
+					].map((randX) =>
+						vec2(randX + pos.x, spread.y * row + pos.y + rand(-0.25, 0.25)),
+					),
+				),
+			)
+		: trees;
 
 // % species %
 const isScanned = (species) => scannedSpecies.has(species);
@@ -126,23 +145,25 @@ const animalTile = (animalIndex = 0) =>
 	tile(vec2(animalResolution * animalIndex, 0), animalResolution, 0);
 const addAnimals = (animals, amount) =>
 	amount ? addAnimals(withNewAnimal(animals), amount - 1) : animals;
-const newAnimal = (pos, spread = 0.5) =>
+const animal = (pos, angleSpread = 0.5) =>
 	new EngineObject(
 		pos,
 		vec2(0),
 		animalTile(randInt(0, animalSpecies.length)),
-		rand(Math.PI * (0.5 - spread / 2), Math.PI * (0.5 + spread / 2)) *
+		rand(Math.PI * (0.5 - angleSpread / 2), Math.PI * (0.5 + angleSpread / 2)) *
 			(center.x > pos.x ? 1 : -1),
 	);
-const withNewAnimal = (animals, pos) => {
-	startPos = () =>
-		vec2(
-			Math.random() < 0.5 ? -0.1 : levelSize.x + 0.1,
-			Math.floor(Math.random() * levelSize.y) + 0.5,
-		);
-	animals.push(newAnimal(pos ? pos : startPos()));
-	return [...animals];
-};
+const withNewAnimal = (animals, pos) => [
+	...animals,
+	animal(
+		pos
+			? pos
+			: vec2(
+					Math.random() < 0.5 ? -0.1 : levelSize.x + 0.1,
+					Math.floor(Math.random() * levelSize.y) + 0.5,
+				),
+	),
+];
 
 // lerp to the target position in front of animal according to the animalPulse
 const moveAnimal = (animal) => {
@@ -159,6 +180,7 @@ const turnAnimal = (animal) => {
 	return animal;
 };
 
+// adds and updates animals
 const pulseAnimals = (animals) =>
 	addAnimals(animals, newAnimalCount)
 		.filter((a) => !offLevelAnimals.includes(a))
@@ -167,9 +189,9 @@ const pulseAnimals = (animals) =>
 // % game %
 function gameInit() {
 	canvasFixedSize = vec2(720, 720);
-	mainCanvas.style.background = backgroundColor;
 	cameraPos = levelSize.scale(0.5).add(cameraOffset);
 	cameraScale = 500 / levelSize.y;
+	trees = plantTrees(vec2(0, rand(-3, -2.5)), 6);
 }
 function gameUpdate() {
 	if (!animalPulse) {
@@ -189,7 +211,7 @@ function gameUpdate() {
 	if (mouseWasPressed(0) && !mouseOffLevel() && animals.length > 0) {
 		scanned = scan(animals);
 		if (scanned.length > 0) updateScannedSpecies(scanned);
-		else scanned = [-1];
+		else scanned = [-1]; // no animals found
 	}
 
 	updateScoreTimerDisplay();
@@ -200,29 +222,27 @@ function gameRender() {
 	drawRect(center, vec2(10), grassGreen);
 	drawRect(center, vec2(5.05), dirtBrown);
 	drawRect(center, vec2(5), spaceBlue); // tile highlighting
-	// TODO jungle leaves covering sides where animals appear
 
 	const pos = vec2();
 	for (pos.x = levelSize.x; pos.x--; )
 		for (pos.y = levelSize.y; pos.y--; ) drawLevelRect(pos);
-
 	animals.map((a) => drawTile(a.pos, vec2(0.5), a.tileInfo));
-	drawTile(ufoPos, vec2(0.5), tile(vec2(0), animalResolution, 1));
-	if (scanned.length > 0) {
-		drawPos = toLevelPos(mousePos).add(vec2(0.5));
-		drawRect(drawPos, vec2(1), spaceBlue);
-		if (scanned[0] === -1) sfx.scan.play(vec2(2.5), 0.5);
-		else sfx.scan.play(); // louder if animal has been scanned
-	}
+	drawTile(ufoPos, vec2(0.5), tile(vec2(0), animalResolution, 1)); // ufo is the same resolution as the animals
+	if (scanned.length === 0) return;
+
+	// player scanned the level
+	drawPos = toLevelPos(mousePos).add(vec2(0.5));
+	drawRect(drawPos, vec2(1), spaceBlue); // flash effect
+	if (scanned[0] === -1) sfx.scan.play(vec2(2.5), 0.5);
+	else sfx.scan.play(); // louder if animal has been scanned
 	scanned = [];
 }
 function gameRenderPost() {
 	drawRect(vec2(center.x, -1.1), vec2(4.02, 1.62), rgb(0, 0, 0)); // tray border
 	drawRect(vec2(center.x, -1.1), vec2(4, 1.6), dirtBrown); // tray
 	animalSpecies.map((a) => drawTraySpecies(a));
+	trees.map((v) => drawTree(v));
 }
-engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, gameRenderPost, [
-	"animals.png",
-	"ufo.png",
-]);
-// startGame();
+setCanvasPixelated(false);
+// biome-ignore format: engineInit
+engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, gameRenderPost, sourceImages);
