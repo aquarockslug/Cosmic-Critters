@@ -191,9 +191,11 @@ function gameInit() {
 	canvasFixedSize = vec2(720, 720);
 	cameraPos = levelSize.scale(0.5).add(cameraOffset);
 	cameraScale = 500 / levelSize.y;
-	trees = plantTrees(vec2(0, rand(-3, -2.5)), 6);
-	trees.push(vec2(center.add(vec2(rand(-2, -1), rand(2, 2.5)))));
-	trees.push(vec2(center.add(vec2(rand(1, 2), rand(2, 2.5)))));
+	trees = [
+		...plantTrees(vec2(0, rand(-3, -2.5)), 6),
+		vec2(center.add(vec2(rand(-2, -1), rand(2, 2.5)))),
+		vec2(center.add(vec2(rand(1, 2), rand(2, 2.5)))),
+	];
 }
 function gameUpdate() {
 	if (!animalPulse) {
