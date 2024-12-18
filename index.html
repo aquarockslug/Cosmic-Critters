@@ -26,9 +26,10 @@
     }
     #floatingDiv {
       position: absolute;
+      cursor: auto;
       z-index: 1;
       width: 100%;
-      height: 50%;
+      height: 75%;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -81,9 +82,12 @@
       (pauseMenu.style.display = visible ? "flex" : "none");
     const mainMenuVisible = (visible) =>
       (mainMenu.style.display = visible ? "flex" : "none");
+    const endMenuVisible = (visible) =>
+      (endMenu.style.display = visible ? "flex" : "none");
     var pulsePausedAt = null;
     var scoreTimerPausedAt = null;
     const pause = () => {
+      sfx.buttonPress.play()
       floatingDiv.style.cursor = "auto";
       pauseButton.style.display = "none";
       pulsePausedAt = animalPulse.get() * -1;
@@ -92,6 +96,7 @@
       animalPulse = null;
     };
     const unpause = () => {
+      sfx.buttonPress.play()
       floatingDiv.style.cursor = "none";
       pauseButton.style.display = "flex";
       pauseMenuVisible(false);
@@ -99,17 +104,26 @@
       scoreTimer = new Timer(scoreTimerPausedAt);
     };
     const restart = () => {
+      sfx.buttonPress.play()
       pauseMenuVisible(false);
       mainMenuVisible(true);
       animals = [];
     };
     const start = () => {
+      sfx.buttonPress.play()
       floatingDiv.style.cursor = "none";
       pauseButton.style.display = "flex";
       mainMenuVisible(false);
       pauseMenuVisible(false);
-      animalPulse = new Timer(animalPulseLength);
-      scoreTimer = new Timer(0);
+      endMenuVisible(false);
+      startGame()
     };
+    const gameOver = () => {
+	    mainMenuVisible(false);
+	    pauseMenuVisible(false);
+	    endMenuVisible(true);
+	    finalTimeDisplay.innerHTML = scoreTimerDisplay.innerHTML
+	    endGame()
+    }
   </script>
 </body>

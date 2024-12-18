@@ -8,24 +8,30 @@ const grassGreen = rgb(0.34, 0.49, 0.27);
 const dirtBrown = rgb(0.61, 0.46, 0.33);
 const spaceBlue = rgb(0.32, 0.61, 0.6);
 
+const levelSize = vec2(5, 5);
+const center = vec2(levelSize.x / 2, levelSize.y / 2);
+let ufoPos = center;
 animalTurnRange = 1;
 animalPulseLength = 2;
-animalSpeed = 3; // distance animals travel in one pulse
+animalSpeed = 4; // distance animals travel in one pulse
 animalSize = 0.25; // distance animals travel in one pulse
 animalResolution = 72;
+newAnimalCount = 5; // amount of animals that appear each pulse
 animals = []; // animals currently on the screen
+scanned = []; // animals currently being scanned
 scannedSpecies = new Set(); // animals that will appear hightlighted in the tray
 
 animalPulse = null;
 scoreTimer = null;
-startGame = () => {
-	animalPulse = new Timer(animalPulseLength);
+const startGame = () => {
+	animalPulse = new Timer(animalPulseLength / 2);
 	scoreTimer = new Timer(0);
 };
+const endGame = () => {
+	animalPulse = null;
+	animals = [];
+};
 
-const levelSize = vec2(5, 5);
-const center = vec2(levelSize.x / 2, levelSize.y / 2);
-let ufoPos = center;
 const animalSpecies = [
 	"orangutan",
 	"flamingo",
@@ -46,8 +52,13 @@ const animalSpecies = [
 	"kangeroo",
 	"llama",
 ];
+// biome-ignore format: zzfx sounds
+const sfx = {
+	"scan": new Sound([1,,994,.01,.03,.02,,3.3,-1,-74,249,.04,,,,,,.71,.03,,-1248]),
+	"newSpecies": new Sound([.2,,531,.08,.29,.36,,.2,,,472,.06,.09,,,,,.8,.16,,846]),
+	"buttonPress": new Sound([.5,,635,.01,.04,.02,3,4.3,,,,,.05,,,,,.61,.01,,-1312])
+}
 
-const gameOver = () => console.log("game over");
 const isHighlighted = (pos) => level()[pos.x + pos.y * levelSize.x];
 const toLevelPos = (pos) => vec2(Math.floor(pos.x), Math.floor(pos.y));
 const mouseOffLevel = () => offLevel(mousePos);
@@ -87,8 +98,10 @@ const isScanned = (species) => scannedSpecies.has(species);
 const getSpecies = (animal) =>
 	animalSpecies[Math.floor(animal.tileInfo.pos.x / animalResolution)];
 const updateScannedSpecies = (animals) => {
+	const oldSize = scannedSpecies.size;
 	for (species of animals.map((a) => getSpecies(a)))
 		scannedSpecies.add(species);
+	if (scannedSpecies.size - oldSize > 0) sfx.newSpecies.play();
 };
 const drawTraySpecies = (species, trayPos = vec2(0.9, -0.65)) => {
 	color = isScanned(species) ? rgb(1, 1, 1) : rgb(0, 0, 0);
@@ -111,6 +124,8 @@ const drawTraySpecies = (species, trayPos = vec2(0.9, -0.65)) => {
 // % animals %
 const animalTile = (animalIndex = 0) =>
 	tile(vec2(animalResolution * animalIndex, 0), animalResolution, 0);
+const addAnimals = (animals, amount) =>
+	amount ? addAnimals(withNewAnimal(animals), amount - 1) : animals;
 const newAnimal = (pos, spread = 0.5) =>
 	new EngineObject(
 		pos,
@@ -145,7 +160,7 @@ const turnAnimal = (animal) => {
 };
 
 const pulseAnimals = (animals) =>
-	withNewAnimal(withNewAnimal(withNewAnimal(withNewAnimal(animals))))
+	addAnimals(animals, newAnimalCount)
 		.filter((a) => !offLevelAnimals.includes(a))
 		.map((a) => turnAnimal(a));
 
@@ -157,30 +172,30 @@ function gameInit() {
 	cameraScale = 500 / levelSize.y;
 }
 function gameUpdate() {
-	if (animalPulse == null) {
-		ufoPos = center; // paused
+	if (!animalPulse) {
+		ufoPos = center.subtract(vec2(0, 1.5)); // paused
 		return;
 	}
 	ufoPos = mousePos;
 	if (scannedSpecies.size === animalSpecies.length) gameOver();
 
-	if (animalPulse.elapsed()) {
+	if (animalPulse?.elapsed()) {
 		offLevelAnimals = animals.filter((a) => offLevel(a.pos));
 		animals = pulseAnimals(animals);
-		offLevelAnimals.map((a) => a.destroy());
+		animals.filter((a) => offLevel(a.pos)).map((a) => a.destroy());
 		animalPulse.set(animalPulseLength);
 	} else animals = animals.map((a) => moveAnimal(a));
 
-	if (mouseWasPressed(0) && animals.length > 0) {
+	if (mouseWasPressed(0) && !mouseOffLevel() && animals.length > 0) {
 		scanned = scan(animals);
 		if (scanned.length > 0) updateScannedSpecies(scanned);
+		else scanned = [-1];
 	}
 
 	updateScoreTimerDisplay();
 }
 function gameUpdatePost() {}
 function gameRender() {
-	// background
 	drawRect(cameraPos.subtract(cameraOffset), levelSize, hsl(0, 0, 0));
 	drawRect(center, vec2(10), grassGreen);
 	drawRect(center, vec2(5.05), dirtBrown);
@@ -193,9 +208,15 @@ function gameRender() {
 
 	animals.map((a) => drawTile(a.pos, vec2(0.5), a.tileInfo));
 	drawTile(ufoPos, vec2(0.5), tile(vec2(0), animalResolution, 1));
+	if (scanned.length > 0) {
+		drawPos = toLevelPos(mousePos).add(vec2(0.5));
+		drawRect(drawPos, vec2(1), spaceBlue);
+		if (scanned[0] === -1) sfx.scan.play(vec2(2.5), 0.5);
+		else sfx.scan.play(); // louder if animal has been scanned
+	}
+	scanned = [];
 }
 function gameRenderPost() {
-	drawRect(vec2(center.x, -0.9), vec2(10, 1.6), grassGreen); // ui area
 	drawRect(vec2(center.x, -1.1), vec2(4.02, 1.62), rgb(0, 0, 0)); // tray border
 	drawRect(vec2(center.x, -1.1), vec2(4, 1.6), dirtBrown); // tray
 	animalSpecies.map((a) => drawTraySpecies(a));
