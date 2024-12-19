@@ -14,7 +14,7 @@ const animalSpeed = 4; // distance animals travel in one pulse
 const animalSize = 0.25; // distance animals travel in one pulse
 const animalResolution = 72;
 const treeResolution = 618;
-const newAnimalCount = 6; // amount of animals that appear each pulse
+const newAnimalCount = 4; // amount of animals that appear each pulse
 let animals = []; // animals currently on the screen
 let scanned = []; // animals currently being scanned
 let scannedSpecies = new Set(); // animals that will appear hightlighted in the tray
@@ -237,8 +237,8 @@ function gameRender() {
 	// player scanned the level
 	drawPos = toLevelPos(mousePos).add(vec2(0.5));
 	drawRect(drawPos, vec2(1), spaceBlue); // flash effect
-	if (scanned[0] === -1) sfx.scan.play(vec2(2.5), 0.5);
-	else sfx.scan.play(); // louder if animal has been scanned
+	if (scanned[0] === -1) sfx.scan.play(vec2(2.5), 0.25);
+	else sfx.scan.play(vec2(2.5), 0.5); // louder if animal has been scanned
 	scanned = [];
 }
 function gameRenderPost() {

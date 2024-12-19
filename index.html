@@ -84,8 +84,22 @@
       (mainMenu.style.display = visible ? "flex" : "none");
     const endMenuVisible = (visible) =>
       (endMenu.style.display = visible ? "flex" : "none");
+    startBgm = null
+    var bgm = new SoundWave("LacunaLiner.mp3");
     var pulsePausedAt = null;
     var scoreTimerPausedAt = null;
+    var startBgm = null
+    start = () => {
+          sfx.buttonPress.play();
+          floatingDiv.style.cursor = "none";
+          pauseButton.style.display = "flex";
+          mainMenuVisible(false);
+          pauseMenuVisible(false);
+          endMenuVisible(false);
+	  if (bgm.isLoading()) setTimeout(() => bgm.play(), 2500)
+	  else bgm.play()
+	  startGame()
+    };
     const pause = () => {
       sfx.buttonPress.play();
       floatingDiv.style.cursor = "auto";
@@ -108,15 +122,7 @@
       pauseMenuVisible(false);
       mainMenuVisible(true);
       animals = [];
-    };
-    const start = () => {
-      sfx.buttonPress.play();
-      floatingDiv.style.cursor = "none";
-      pauseButton.style.display = "flex";
-      mainMenuVisible(false);
-      pauseMenuVisible(false);
-      endMenuVisible(false);
-      startGame();
+      bgm.stop();
     };
     const gameOver = () => {
       floatingDiv.style.cursor = "auto";
@@ -124,6 +130,7 @@
       mainMenuVisible(false);
       pauseMenuVisible(false);
       endMenuVisible(true);
+      bgm.stop();
       endGame();
     };
   </script>
