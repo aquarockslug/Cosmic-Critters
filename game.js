@@ -8,7 +8,6 @@ const dirtBrown = rgb(0.61, 0.46, 0.33);
 const spaceBlue = rgb(0.32, 0.61, 0.6);
 const levelSize = vec2(9);
 const center = vec2(levelSize.x / 2, levelSize.y / 2);
-
 const animalSpeed = 4; // distance animals travel in one pulse
 const animalSize = 0.7;
 const animalTurnRange = 1.5;
@@ -17,7 +16,6 @@ const animalResolution = 72;
 const newAnimalCount = 10; // amount of animals that appear each pulse
 const treeResolution = 618;
 const treeScale = 2.5;
-
 let animals = []; // animals currently on the screen
 let scanned = []; // animals currently being scanned
 let scannedSpecies = new Set(); // animals that will appear hightlighted in the tray
@@ -146,6 +144,8 @@ function gameRenderPost() {
 
 const isHighlighted = (pos) => level()[pos.x + pos.y * levelSize.x];
 const toLevelPos = (pos) => vec2(Math.floor(pos.x), Math.floor(pos.y));
+const mouseLevelPos = () =>
+	mouseOffLevel() ? null : toLevelPos(mousePos).add(0.5, 0.5);
 const mouseOffLevel = () => offLevel(mousePos);
 // return animals which are on the currently highlighted tile
 const scan = (animals) =>
