@@ -128,6 +128,7 @@ function gameRender() {
 function gameRenderPost() {
 	// drawRect(ufoPos.add(vec2(0, -0.5)), vec2(0.25));
 	drawTile(ufoPos, vec2(1), tile(vec2(0), animalResolution, 1)); // ufo is the same resolution as the animals
+	// TODO add rocks to scenery
 	drawRect(
 		vec2(center.x, -1.1),
 		vec2(levelSize.x - 3 + 0.02, 1.62),
