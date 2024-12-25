@@ -11,7 +11,7 @@ const center = vec2(levelSize.x / 2, levelSize.y / 2);
 
 const animalSpeed = 4; // distance animals travel in one pulse
 const animalSize = 0.7;
-const animalTurnRange = 1.25;
+const animalTurnRange = 1.5;
 const animalPulseLength = 2.5;
 const animalResolution = 72;
 const newAnimalCount = 10; // amount of animals that appear each pulse
@@ -80,18 +80,13 @@ function gameInit() {
 	// WARN broken particles
 	// biome-ignore format: particle emitter
 	// ufoParticles = new ParticleEmitter(center, 0, 0, 0, 100, 0, tile(0, 16), new Color(0.573, 0.827, 0.961, 1), new Color(0.329, 0.604, 0.612, 1), new Color(0.329, 0.604, 0.612, 0), new Color(0.329, 0.612, 0.604, 0), 0.1, 0.1, 1, 0.1, 0.05, 1, 1, 3, 3.14, 0.1, 0.2, 0, 0, 1);
-	ufo_particle_data = [
-		0.1, 0.1, 1, 0.1, 0.05, 1, 1, 3, 3.14, 0.1, 0.2, 0, 0, 1,
-	];
-	// biome-ignore format:
-	ufoParticles = new ParticleEmitter(vec2(0, 2), 0, 0, 0, 100, 0, tile(0, 16), new Color(0.573, 0.827, 0.961, 1), new Color(0.329, 0.604, 0.612, 1), new Color(0.329, 0.604, 0.612, 0), new Color(0.329, 0.612, 0.604, 0), ...ufo_particle_data);
 }
 function gameUpdate() {
 	if (!animalPulse) {
 		ufoPos = center.subtract(vec2(0, 1.5)); // paused
 		return;
 	}
-	ufoParticles.pos = mousePos;
+	// ufoParticles.pos = mousePos;
 	ufoPos = mousePos;
 	if (scannedSpecies.size === animalSpecies.length) gameOver();
 
