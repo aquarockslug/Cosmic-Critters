@@ -16,6 +16,7 @@ const animalResolution = 72;
 const newAnimalCount = 10; // amount of animals that appear each pulse
 const treeResolution = 618;
 const treeScale = 2.5;
+let ufoTarget = center;
 let animals = []; // animals currently on the screen
 let scanned = []; // animals currently being scanned
 let scannedSpecies = new Set(); // animals that will appear hightlighted in the tray
@@ -84,8 +85,15 @@ function gameUpdate() {
 		ufoPos = center.subtract(vec2(0, 1.5)); // paused
 		return;
 	}
+	console.log(mouseLevelPos());
 	// ufoParticles.pos = mousePos;
-	ufoPos = mousePos;
+	if (!ufoPos) ufoPos = mousePos;
+	if (ufoPos.distance(ufoTarget) < 0.25) {
+		console.log("ufo at target");
+		ufoTarget = mouseLevelPos() ? mouseLevelPos() : center;
+	} else {
+		ufoPos = ufoPos.add(ufoTarget.subtract(ufoPos).normalize().scale(0.1));
+	}
 	if (scannedSpecies.size === animalSpecies.length) gameOver();
 
 	if (animalPulse?.elapsed()) {
@@ -145,7 +153,7 @@ function gameRenderPost() {
 const isHighlighted = (pos) => level()[pos.x + pos.y * levelSize.x];
 const toLevelPos = (pos) => vec2(Math.floor(pos.x), Math.floor(pos.y));
 const mouseLevelPos = () =>
-	mouseOffLevel() ? null : toLevelPos(mousePos).add(0.5, 0.5);
+	mouseOffLevel() ? null : toLevelPos(mousePos).add(vec2(0.5, 0.5));
 const mouseOffLevel = () => offLevel(mousePos);
 // return animals which are on the currently highlighted tile
 const scan = (animals) =>
