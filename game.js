@@ -206,27 +206,26 @@ const updateScoreTimerDisplay = () => {
 	second = Math.floor(scoreTimer.get() % 60);
 	scoreTimerDisplay.innerText = `${minute < 10 ? "0" : ""}${minute}:${second < 10 ? "0" : ""}${second}`;
 };
+const plantTrees = (pos, row, trees = [], spread = vec2(2, 1.5)) =>
+	!row
+		? trees // recursion ends on row 0
+		: plantTrees(pos, row - 1, [
+				...trees,
+				...randTreeX(spread).map((randX) =>
+					vec2(randX + pos.x, randTreeY(spread, row) + pos.y),
+				),
+			]);
 const drawTree = (pos) =>
 	drawTile(
 		pos.add(vec2(0, 0.5)),
 		vec2(treeScale),
 		tile(vec2(0), vec2(treeResolution), 2),
 	);
-const plantTrees = (pos, row, trees = [], spread = vec2(2, 1.5)) =>
-	row
-		? plantTrees(
-				pos,
-				row - 1,
-				trees.concat(
-					[
-						rand(-spread.x - 0.25, -0.25), // left side
-						rand(levelSize.x + 0.25, levelSize.x + spread.x + 0.25), // right side
-					].map((randX) =>
-						vec2(randX + pos.x, spread.y * row + pos.y + rand(-0.25, 0.25)),
-					),
-				),
-			)
-		: trees;
+const randTreeX = (spread) => [
+	rand(-spread.x - 0.25, -0.25), // left side
+	rand(levelSize.x + 0.25, levelSize.x + spread.x + 0.25), // right side
+];
+const randTreeY = (spread, row) => spread.y * row + rand(-0.25, 0.25);
 
 // % species %
 const isScanned = (species) => scannedSpecies.has(species);
@@ -262,6 +261,10 @@ const animalTile = (animalIndex = 0) =>
 	tile(vec2(animalResolution * animalIndex, 0), animalResolution, 0);
 const addAnimals = (animals, amount) =>
 	amount ? addAnimals(withNewAnimal(animals), amount - 1) : animals;
+const withNewAnimal = (animals, pos) => [
+	...animals,
+	animal(pos ? pos : animalStartPos()),
+];
 const animal = (pos, angleSpread = 0.5) =>
 	new EngineObject(
 		pos,
@@ -270,18 +273,11 @@ const animal = (pos, angleSpread = 0.5) =>
 		rand(Math.PI * (0.5 - angleSpread / 2), Math.PI * (0.5 + angleSpread / 2)) *
 			(center.x > pos.x ? 1 : -1),
 	);
-const withNewAnimal = (animals, pos) => [
-	...animals,
-	animal(
-		pos
-			? pos
-			: vec2(
-					Math.random() < 0.5 ? -0.1 : levelSize.x + 0.1,
-					Math.floor(Math.random() * levelSize.y) + 0.5,
-				),
-	),
-];
-
+const animalStartPos = () =>
+	vec2(
+		Math.random() < 0.5 ? -0.1 : levelSize.x + 0.1,
+		Math.floor(Math.random() * levelSize.y) + 0.5,
+	);
 // lerp to the target position in front of animal according to the animalPulse
 const moveAnimal = (animal) => {
 	animal.pos = animal.pos.lerp(
@@ -290,19 +286,16 @@ const moveAnimal = (animal) => {
 	);
 	return animal;
 };
-
 // for turning animals slightly between pulses
 const turnAnimal = (animal) => {
 	animal.angle += rand(-animalTurnRange / 2, animalTurnRange / 2);
 	return animal;
 };
-
 // adds and updates animals
 const pulseAnimals = (animals) =>
 	addAnimals(animals, newAnimalCount)
 		.filter((a) => !offLevelAnimals.includes(a))
 		.map((a) => turnAnimal(a));
-
 setCanvasPixelated(false);
 // biome-ignore format: engineInit
 engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, gameRenderPost, sourceImages);
