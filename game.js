@@ -13,12 +13,16 @@ const animalSize = 0.7;
 const animalTurnRange = 1.5;
 const animalPulseLength = 2.5;
 const animalResolution = 72;
-const newAnimalCount = 10; // amount of animals that appear each pulse
+const newAnimalCount = 12; // amount of animals that appear each pulse
 const treeResolution = 618;
 const treeScale = 2.5;
-let ufoTarget = center;
+const ufoSpeed = 20;
+const ufoScale = 1.2;
+const ufoTargetAccuracy = 0.1;
+let ufoTarget = null;
 let animals = []; // animals currently on the screen
 let scanned = []; // animals currently being scanned
+let scanPos = center;
 let scannedSpecies = new Set(); // animals that will appear hightlighted in the tray
 let ufoPos = center;
 let animalPulse = null;
@@ -85,16 +89,27 @@ function gameUpdate() {
 		ufoPos = center.subtract(vec2(0, 1.5)); // paused
 		return;
 	}
-	console.log(mouseLevelPos());
-	// ufoParticles.pos = mousePos;
-	if (!ufoPos) ufoPos = mousePos;
-	if (ufoPos.distance(ufoTarget) < 0.25) {
-		console.log("ufo at target");
-		ufoTarget = mouseLevelPos() ? mouseLevelPos() : center;
-	} else {
-		ufoPos = ufoPos.add(ufoTarget.subtract(ufoPos).normalize().scale(0.1));
-	}
 	if (scannedSpecies.size === animalSpecies.length) gameOver();
+	if (scanPos) ufoTarget = scanPos;
+	else ufoTarget = mouseLevelPos() ? mouseLevelPos() : center;
+	// check if ufo movement target has been reached
+	if (ufoPos.distance(ufoTarget) < ufoTargetAccuracy) {
+		// scan if scan target has been reached
+		if (scanPos && scanPos.distance(ufoPos) < ufoTargetAccuracy) {
+			scanPos = null;
+			scanned = scan(animals);
+			if (scanned.length > 0) updateScannedSpecies(scanned);
+			else scanned = [-1]; // no animals found
+		}
+	}
+	// move towerds the movement target
+	else
+		ufoPos = ufoPos.add(
+			ufoTarget
+				.subtract(ufoPos)
+				.normalize()
+				.scale(ufoSpeed * 0.005),
+		);
 
 	if (animalPulse?.elapsed()) {
 		offLevelAnimals = animals.filter((a) => offLevel(a.pos));
@@ -103,11 +118,8 @@ function gameUpdate() {
 		animalPulse.set(animalPulseLength);
 	} else animals = animals.map((a) => moveAnimal(a));
 
-	if (mouseWasPressed(0) && !mouseOffLevel() && animals.length > 0) {
-		scanned = scan(animals);
-		if (scanned.length > 0) updateScannedSpecies(scanned);
-		else scanned = [-1]; // no animals found
-	}
+	if (mouseWasPressed(0) && !mouseOffLevel() && animals.length > 0)
+		scanPos = mouseLevelPos();
 
 	updateScoreTimerDisplay();
 }
@@ -133,7 +145,7 @@ function gameRender() {
 }
 function gameRenderPost() {
 	// drawRect(ufoPos.add(vec2(0, -0.5)), vec2(0.25));
-	drawTile(ufoPos, vec2(1), tile(vec2(0), animalResolution, 1)); // ufo is the same resolution as the animals
+	drawTile(ufoPos, vec2(ufoScale), tile(vec2(0), animalResolution, 1)); // ufo is the same resolution as the animals
 	// TODO add rocks to scenery
 	drawRect(
 		vec2(center.x, -1.1),
@@ -148,22 +160,31 @@ function gameRenderPost() {
 	drawRect(vec2(center.x, -1.1), vec2(levelSize.x - 3, 1.6), dirtBrown); // tray
 	animalSpecies.map((a) => drawTraySpecies(a));
 	trees.map((v) => drawTree(v));
+	drawRect(mousePos, vec2(0.1), spaceBlue);
 }
 
-const isHighlighted = (pos) => level()[pos.x + pos.y * levelSize.x];
+const isOnHighlightedTile = (pos) =>
+	level(true, false)[pos.x + pos.y * levelSize.x];
+const isUnderUfo = (pos) => level(false, true)[pos.x + pos.y * levelSize.x];
 const toLevelPos = (pos) => vec2(Math.floor(pos.x), Math.floor(pos.y));
+// ufoPos.distance(toLevelPos(pos).add(0.5)) <= ufoTargetAccuracy;
 const mouseLevelPos = () =>
 	mouseOffLevel() ? null : toLevelPos(mousePos).add(vec2(0.5, 0.5));
 const mouseOffLevel = () => offLevel(mousePos);
 // return animals which are on the currently highlighted tile
 const scan = (animals) =>
-	animals.filter((a) => isHighlighted(toLevelPos(a.pos)));
+	animals.filter((a) => isOnHighlightedTile(toLevelPos(a.pos)));
+// const ufoScan = (animals) => animals.filter((a) => isUnderUfo(a.pos));
 const offLevel = (pos) =>
 	pos.x < 0 || pos.y < 0 || pos.x > levelSize.x || pos.y > levelSize.y;
-const level = () => {
+const level = (mouse, ufo) => {
 	l = emptyLevel();
-	if (mouseOffLevel()) return l;
-	l[toLevelPos(mousePos).x + toLevelPos(mousePos).y * levelSize.x] = true; // mark highlighted tile
+	// mark highlighted tile
+	if (ufo) l[toLevelPos(ufoPos).x + toLevelPos(ufoPos).y * levelSize.x] = true;
+	if (mouse) {
+		if (mouseOffLevel()) return l;
+		l[toLevelPos(mousePos).x + toLevelPos(mousePos).y * levelSize.x] = true;
+	}
 	return l;
 };
 // a level where none of the tiles are highlighted
@@ -177,7 +198,7 @@ const drawLevelRect = (pos) => {
 	drawPos = pos.add(vec2(0.5));
 	if (mouseOffLevel() || animalPulse == null)
 		drawRect(drawPos, vec2(1), grassGreen);
-	else if (isHighlighted(pos)) drawRect(drawPos, vec2(0.95), grassGreen);
+	else if (isOnHighlightedTile(pos)) drawRect(drawPos, vec2(0.95), grassGreen);
 	else drawRect(drawPos, vec2(1), grassGreen);
 };
 const updateScoreTimerDisplay = () => {
