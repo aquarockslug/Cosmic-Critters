@@ -82,9 +82,10 @@ function gameInit() {
 	];
 	// WARN broken particles
 	// biome-ignore format: particle emitter
-	// ufoParticles = new ParticleEmitter(center, 0, 0, 0, 100, 0, tile(0, 16), new Color(0.573, 0.827, 0.961, 1), new Color(0.329, 0.604, 0.612, 1), new Color(0.329, 0.604, 0.612, 0), new Color(0.329, 0.612, 0.604, 0), 0.1, 0.1, 1, 0.1, 0.05, 1, 1, 3, 3.14, 0.1, 0.2, 0, 0, 1);
+	ufoParticles = new ParticleEmitter(center, 0, 0, 0, 100, 0, tile(0, animalResolution, 1), new Color(0.573, 0.827, 0.961, 1), new Color(0.329, 0.604, 0.612, 1), new Color(0.329, 0.604, 0.612, 0), new Color(0.329, 0.612, 0.604, 0), 0.1, 0.1, 1, 0.1, 0.05, 1, 1, 3, 3.14, 0.1, 0.2, 0, 0, 1);
 }
 function gameUpdate() {
+	ufoParticles.pos = ufoPos.subtract(vec2(0, 0.7));
 	if (!animalPulse) {
 		ufoPos = center.subtract(vec2(0, 1.5)); // paused
 		return;
