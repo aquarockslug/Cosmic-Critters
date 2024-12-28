@@ -5,10 +5,10 @@ const scoreTimerDisplay = document.getElementById("scoreTimerDisplay");
 const backgroundColor = hsl(0, 0, 0.2);
 const grassGreen = rgb(0.34, 0.49, 0.27);
 const dirtBrown = rgb(0.61, 0.46, 0.33);
-const spaceBlue = rgb(0.32, 0.61, 0.6);
+const spaceBlue = (a = 1) => rgb(0.32, 0.61, 0.6, a);
 const levelSize = vec2(9);
 const center = vec2(levelSize.x / 2, levelSize.y / 2);
-const animalSpeed = 4; // distance animals travel in one pulse
+const animalSpeed = 6; // distance animals travel in one pulse
 const animalSize = 0.7;
 const animalTurnRange = 1.5;
 const animalPulseLength = 2.5;
@@ -31,12 +31,18 @@ const startGame = () => {
 	animalPulse = new Timer(animalPulseLength / 2);
 	scoreTimer = new Timer(0);
 	scannedSpecies = new Set();
+	if (!bgm.isLoading()) bgm.play();
 };
 const endGame = () => {
 	animalPulse = null;
 	animals = [];
 };
-const sourceImages = ["animals.png", "ufo.png", "tree2.png"];
+const sourceImages = [
+	"animals.png",
+	"ufo.png",
+	"tree2.png",
+	"spaceParticle.png",
+];
 const animalSpecies = [
 	"orangutan",
 	"flamingo",
@@ -60,7 +66,6 @@ const animalSpecies = [
 // biome-ignore format: zzfx sounds
 const sfx = { // biome-ignore lint:
 	"scan": new Sound([1,,994,.01,.03,.02,,3.3,-1,-74,249,.04,,,,,,.71,.03,,-1248]), // biome-ignore lint:
-	"newSpecies": new Sound([.2,,531,.08,.29,.36,,.2,,,472,.06,.09,,,,,.8,.16,,846]),// biome-ignore lint:
 	"buttonPress": new Sound([.5,,635,.01,.04,.02,3,4.3,,,,,.05,,,,,.61,.01,,-1312])
 }
 
@@ -80,19 +85,22 @@ function gameInit() {
 		vec2(center.add(botTree(rand(4, levelSize.x / 2)))),
 		...plantTrees(vec2(0, rand(-3, -2.5)), levelSize.y + 1),
 	];
-	// WARN broken particles
+	particleTile = tile(0, animalResolution, 3);
 	// biome-ignore format: particle emitter
-	ufoParticles = new ParticleEmitter(center, 0, 0, 0, 100, 0, tile(0, animalResolution, 1), new Color(0.573, 0.827, 0.961, 1), new Color(0.329, 0.604, 0.612, 1), new Color(0.329, 0.604, 0.612, 0), new Color(0.329, 0.612, 0.604, 0), 0.1, 0.1, 1, 0.1, 0.05, 1, 1, 3, 3.14, 0.1, 0.2, 0, 0, 1);
+	ufoParticles = new ParticleEmitter(center, 0, 0, 0, 10, 3.14, particleTile, new Color(1, 1, 1, 1), new Color(1, 1, 1, 1), new Color(1, 1, 1, 0), new Color(1, 1, 1, 0), 0.75, 0.4, 0.55, 0.001, 0.001, 1, 1, 0, 3.14, 1, 0.2, 0, 0, 1);
 }
 function gameUpdate() {
-	ufoParticles.pos = ufoPos.subtract(vec2(0, 0.7));
+	ufoParticles.pos = ufoPos;
 	if (!animalPulse) {
 		ufoPos = center.subtract(vec2(0, 1.5)); // paused
 		return;
 	}
 	if (scannedSpecies.size === animalSpecies.length) gameOver();
+
+	if (!mouseOffLevel()) scanPos = mouseLevelPos();
 	if (scanPos) ufoTarget = scanPos;
 	else ufoTarget = mouseLevelPos() ? mouseLevelPos() : center;
+
 	// check if ufo movement target has been reached
 	if (ufoPos.distance(ufoTarget) < ufoTargetAccuracy) {
 		// scan if scan target has been reached
@@ -119,9 +127,6 @@ function gameUpdate() {
 		animalPulse.set(animalPulseLength);
 	} else animals = animals.map((a) => moveAnimal(a));
 
-	if (mouseWasPressed(0) && !mouseOffLevel() && animals.length > 0)
-		scanPos = mouseLevelPos();
-
 	updateScoreTimerDisplay();
 }
 function gameUpdatePost() {}
@@ -129,20 +134,20 @@ function gameRender() {
 	drawRect(cameraPos.subtract(cameraOffset), levelSize, hsl(0, 0, 0));
 	drawRect(center, levelSize.multiply(vec2(2)), grassGreen);
 	drawRect(center, levelSize.multiply(vec2(1.025)), dirtBrown);
-	drawRect(center, levelSize, spaceBlue); // tile highlighting
+	drawRect(center, levelSize, spaceBlue()); // tile highlighting
 
 	const pos = vec2();
 	for (pos.x = levelSize.x; pos.x--; )
 		for (pos.y = levelSize.y; pos.y--; ) drawLevelRect(pos);
 	animals.map((a) => drawTile(a.pos, vec2(animalSize), a.tileInfo));
-	if (scanned.length === 0) return;
 
-	// player scanned the level
-	drawPos = toLevelPos(mousePos).add(vec2(0.5));
-	drawRect(drawPos, vec2(1), spaceBlue); // flash effect
-	if (scanned[0] === -1) sfx.scan.play(vec2(2.5), 0.25);
-	else sfx.scan.play(vec2(2.5), 0.5); // louder if animal has been scanned
-	scanned = [];
+	if (scanned.length !== 0) {
+		// player scanned the level
+		drawPos = toLevelPos(ufoPos).add(vec2(0.5));
+		drawRect(drawPos, vec2(1), spaceBlue(0.5)); // scan effect
+
+		scanned = [];
+	}
 }
 function gameRenderPost() {
 	// drawRect(ufoPos.add(vec2(0, -0.5)), vec2(0.25));
@@ -161,7 +166,6 @@ function gameRenderPost() {
 	drawRect(vec2(center.x, -1.1), vec2(levelSize.x - 3, 1.6), dirtBrown); // tray
 	animalSpecies.map((a) => drawTraySpecies(a));
 	trees.map((v) => drawTree(v));
-	drawRect(mousePos, vec2(0.1), spaceBlue);
 }
 
 const isOnHighlightedTile = (pos) =>
@@ -236,7 +240,10 @@ const updateScannedSpecies = (animals) => {
 	const oldSize = scannedSpecies.size;
 	for (species of animals.map((a) => getSpecies(a)))
 		scannedSpecies.add(species);
-	if (scannedSpecies.size - oldSize > 0) sfx.newSpecies.play();
+	if (scannedSpecies.size - oldSize > 0) sfx.scan.play();
+
+	// if (scanned[0] === -1) sfx.scan.play(vec2(2.5), 0.25);
+	// else sfx.scan.play(vec2(2.5), 0.5); // louder if animal has been scanned
 };
 const drawTraySpecies = (species, spread = 0.6) => {
 	trayPos = center.add(vec2(-2.4, -5.35));
@@ -261,7 +268,7 @@ const drawTraySpecies = (species, spread = 0.6) => {
 const animalTile = (animalIndex = 0) =>
 	tile(vec2(animalResolution * animalIndex, 0), animalResolution, 0);
 const addAnimals = (animals, amount) =>
-	amount ? addAnimals(withNewAnimal(animals), amount - 1) : animals;
+	amount > 0 ? addAnimals(withNewAnimal(animals), amount - 1) : animals;
 const withNewAnimal = (animals, pos) => [
 	...animals,
 	animal(pos ? pos : animalStartPos()),
