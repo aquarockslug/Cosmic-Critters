@@ -8,12 +8,13 @@ const dirtBrown = rgb(0.61, 0.46, 0.33);
 const spaceBlue = (a = 1) => rgb(0.32, 0.61, 0.6, a);
 const levelSize = vec2(9);
 const center = vec2(levelSize.x / 2, levelSize.y / 2);
-const animalSpeed = 6; // distance animals travel in one pulse
+const animalSpeed = 7; // distance animals travel in one pulse
+const animalPulseLength = 1.25;
+const newAnimalCount = 10; // amount of animals that appear each pulse
 const animalSize = 0.7;
-const animalTurnRange = 1.5;
-const animalPulseLength = 2.5;
+const animalTurnRange = 2;
 const animalResolution = 72;
-const newAnimalCount = 12; // amount of animals that appear each pulse
+const rockChance = 10; // percent chance of a tree being a rock instead
 const treeResolution = 618;
 const treeScale = 2.5;
 const ufoSpeed = 20;
@@ -31,17 +32,20 @@ const startGame = () => {
 	animalPulse = new Timer(animalPulseLength / 2);
 	scoreTimer = new Timer(0);
 	scannedSpecies = new Set();
-	if (!bgm.isLoading()) bgm.play();
+	bgm.stop();
+	if (!bgm.isLoading()) bgm.play(center, 3);
 };
 const endGame = () => {
 	animalPulse = null;
 	animals = [];
+	sfx.victory.play();
 };
 const sourceImages = [
 	"animals.png",
 	"ufo.png",
 	"tree2.png",
 	"spaceParticle.png",
+	"rock.png",
 ];
 const animalSpecies = [
 	"orangutan",
@@ -66,6 +70,7 @@ const animalSpecies = [
 // biome-ignore format: zzfx sounds
 const sfx = { // biome-ignore lint:
 	"scan": new Sound([1,,994,.01,.03,.02,,3.3,-1,-74,249,.04,,,,,,.71,.03,,-1248]), // biome-ignore lint:
+	"victory": new Sound([.2,,531,.08,.29,.36,,.2,,,472,.06,.09,,,,,.8,.16,,846]),// biome-ignore lint:
 	"buttonPress": new Sound([.5,,635,.01,.04,.02,3,4.3,,,,,.05,,,,,.61,.01,,-1312])
 }
 
@@ -83,8 +88,11 @@ function gameInit() {
 		vec2(center.add(topTree(rand(2.5, levelSize.x / 2)))),
 		vec2(center.add(botTree(rand(-levelSize.x / 2, -4)))), // trees at the bottom of the clearing
 		vec2(center.add(botTree(rand(4, levelSize.x / 2)))),
-		...plantTrees(vec2(0, rand(-3, -2.5)), levelSize.y + 1),
+		...plantTrees(vec2(0, rand(-2.5, -2.5)), levelSize.y + 1),
 	];
+	// randomly turn some trees into rocks
+	rocks = trees.filter((t) => Math.random() < rockChance * 0.01);
+	trees = trees.filter((t) => !rocks.includes(t));
 	particleTile = tile(0, animalResolution, 3);
 	// biome-ignore format: particle emitter
 	ufoParticles = new ParticleEmitter(center, 0, 0, 0, 10, 3.14, particleTile, new Color(1, 1, 1, 1), new Color(1, 1, 1, 1), new Color(1, 1, 1, 0), new Color(1, 1, 1, 0), 0.75, 0.4, 0.55, 0.001, 0.001, 1, 1, 0, 3.14, 1, 0.2, 0, 0, 1);
@@ -139,20 +147,19 @@ function gameRender() {
 	const pos = vec2();
 	for (pos.x = levelSize.x; pos.x--; )
 		for (pos.y = levelSize.y; pos.y--; ) drawLevelRect(pos);
+	rocks.map((v) => drawRock(v));
 	animals.map((a) => drawTile(a.pos, vec2(animalSize), a.tileInfo));
 
 	if (scanned.length !== 0) {
 		// player scanned the level
 		drawPos = toLevelPos(ufoPos).add(vec2(0.5));
 		drawRect(drawPos, vec2(1), spaceBlue(0.5)); // scan effect
-
 		scanned = [];
 	}
 }
 function gameRenderPost() {
-	// drawRect(ufoPos.add(vec2(0, -0.5)), vec2(0.25));
+	// TODO: drop shadow? drawRect(ufoPos.add(vec2(0, -0.5)), vec2(0.25));
 	drawTile(ufoPos, vec2(ufoScale), tile(vec2(0), animalResolution, 1)); // ufo is the same resolution as the animals
-	// TODO add rocks to scenery
 	drawRect(
 		vec2(center.x, -1.1),
 		vec2(levelSize.x - 3 + 0.02, 1.62),
@@ -220,11 +227,12 @@ const plantTrees = (pos, row, trees = [], spread = vec2(2, 1.5)) =>
 					vec2(randX + pos.x, randTreeY(spread, row) + pos.y),
 				),
 			]);
-const drawTree = (pos) =>
+const drawRock = (pos) => drawTree(pos, 4);
+const drawTree = (pos, textureIndex = 2) =>
 	drawTile(
 		pos.add(vec2(0, 0.5)),
 		vec2(treeScale),
-		tile(vec2(0), vec2(treeResolution), 2),
+		tile(vec2(0), vec2(treeResolution), textureIndex),
 	);
 const randTreeX = (spread) => [
 	rand(-spread.x - 0.25, -0.25), // left side
