@@ -163,17 +163,10 @@ function gameRender() {
 }
 function gameRenderPost() {
 	drawTile(ufoPos, vec2(ufoScale), tile(vec2(0), animalResolution, 1)); // ufo is the same resolution as the animals
-	drawRect(
-		vec2(center.x, -1.1),
-		vec2(levelSize.x - 3 + 0.02, 1.62),
-		rgb(0, 0, 0),
-	); // tray border
-	drawRect(
-		vec2(center.x + 0.05, -1.15),
-		vec2(levelSize.x - 3 + 0.02, 1.62),
-		rgb(0, 0, 0),
-	); // tray border 2
-	drawRect(vec2(center.x, -1.1), vec2(levelSize.x - 3, 1.6), dirtBrown); // tray
+	const trayBorderArgs = [vec2(levelSize.x - 3 + 0.02, 1.62), rgb(0, 0, 0)];
+	drawRect(vec2(center.x, -1.1), ...trayBorderArgs);
+	drawRect(vec2(center.x + 0.05, -1.15), ...trayBorderArgs);
+	drawRect(vec2(center.x, -1.1), vec2(levelSize.x - 3, 1.6), dirtBrown);
 	animalSpecies.map((a) => drawTraySpecies(a));
 	trees.map((v) => drawTree(v));
 }
