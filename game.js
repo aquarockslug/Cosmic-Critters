@@ -8,9 +8,9 @@ const dirtBrown = rgb(0.61, 0.46, 0.33);
 const spaceBlue = (a = 1) => rgb(0.32, 0.61, 0.6, a);
 const levelSize = vec2(9);
 const center = vec2(levelSize.x / 2, levelSize.y / 2);
-const animalSpeed = 7; // distance animals travel in one pulse
+const animalSpeed = 8; // distance animals travel in one pulse
 const animalPulseLength = 1.25;
-const newAnimalCount = 10; // amount of animals that appear each pulse
+const newAnimalCount = 8; // amount of animals that appear each pulse
 const animalSize = 0.7;
 const animalTurnRange = 2;
 const animalResolution = 72;
@@ -81,21 +81,26 @@ function gameInit() {
 	const topTree = (x) => vec2(x, rand(levelSize.y / 2, levelSize.y / 2 + 0.5));
 	const botTree = (x) =>
 		vec2(x, rand(levelSize.y * -0.5 - 0.5, levelSize.y * -0.5 - 1.5));
-	trees = [
+
+	trees = plantTrees(vec2(0, rand(-2.5, -2.5)), levelSize.y + 1, [
 		vec2(center.add(topTree(rand(-levelSize.x / 2, -2)))), // trees at the top of clearing
 		vec2(center.add(topTree(rand(-1.5, -1)))),
 		vec2(center.add(topTree(rand(1, 1.5)))),
 		vec2(center.add(topTree(rand(2.5, levelSize.x / 2)))),
 		vec2(center.add(botTree(rand(-levelSize.x / 2, -4)))), // trees at the bottom of the clearing
 		vec2(center.add(botTree(rand(4, levelSize.x / 2)))),
-		...plantTrees(vec2(0, rand(-2.5, -2.5)), levelSize.y + 1),
-	];
-	// randomly turn some trees into rocks
+	]);
+	// randomly turn at least one tree into a rocks
 	rocks = trees.filter((t) => Math.random() < rockChance * 0.01);
+	if (rocks.length === 0) rocks.push(trees[0]);
 	trees = trees.filter((t) => !rocks.includes(t));
+
 	particleTile = tile(0, animalResolution, 3);
+	ufoParticleSettings = [
+		0.75, 0.4, 0.55, 0.001, 0.001, 1, 1, 0, 3.14, 1, 0.2, 0, 0, 1,
+	];
 	// biome-ignore format: particle emitter
-	ufoParticles = new ParticleEmitter(center, 0, 0, 0, 10, 3.14, particleTile, new Color(1, 1, 1, 1), new Color(1, 1, 1, 1), new Color(1, 1, 1, 0), new Color(1, 1, 1, 0), 0.75, 0.4, 0.55, 0.001, 0.001, 1, 1, 0, 3.14, 1, 0.2, 0, 0, 1);
+	ufoParticles = new ParticleEmitter(center, 0, 0, 0, 10, 3.14, particleTile, new Color(1, 1, 1, 1), new Color(1, 1, 1, 1), new Color(1, 1, 1, 0), new Color(1, 1, 1, 0), ...ufoParticleSettings);
 }
 function gameUpdate() {
 	ufoParticles.pos = ufoPos;
@@ -104,7 +109,6 @@ function gameUpdate() {
 		return;
 	}
 	if (scannedSpecies.size === animalSpecies.length) gameOver();
-
 	if (!mouseOffLevel()) scanPos = mouseLevelPos();
 	if (scanPos) ufoTarget = scanPos;
 	else ufoTarget = mouseLevelPos() ? mouseLevelPos() : center;
@@ -158,7 +162,6 @@ function gameRender() {
 	}
 }
 function gameRenderPost() {
-	// TODO: drop shadow? drawRect(ufoPos.add(vec2(0, -0.5)), vec2(0.25));
 	drawTile(ufoPos, vec2(ufoScale), tile(vec2(0), animalResolution, 1)); // ufo is the same resolution as the animals
 	drawRect(
 		vec2(center.x, -1.1),
