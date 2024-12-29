@@ -1,31 +1,26 @@
 // animal scan by Aquarock
-
+//////////////////////////
 const cameraOffset = vec2(0, -0.5);
-const scoreTimerDisplay = document.getElementById("scoreTimerDisplay");
+const scoreTimerDisplay = document.getElementById('scoreTimerDisplay');
 const backgroundColor = hsl(0, 0, 0.2);
 const grassGreen = rgb(0.34, 0.49, 0.27);
 const dirtBrown = rgb(0.61, 0.46, 0.33);
 const spaceBlue = (a = 1) => rgb(0.32, 0.61, 0.6, a);
 const levelSize = vec2(9);
 const center = vec2(levelSize.x / 2, levelSize.y / 2);
-const animalSpeed = 8; // distance animals travel in one pulse
-const animalPulseLength = 1.25;
-const newAnimalCount = 8; // amount of animals that appear each pulse
-const animalSize = 0.7;
-const animalTurnRange = 2;
-const animalResolution = 72;
-const rockChance = 10; // percent chance of a tree being a rock instead
-const treeResolution = 618;
-const treeScale = 2.5;
-const ufoSpeed = 20;
-const ufoScale = 1.2;
-const ufoTargetAccuracy = 0.1;
+const newAnimalCount = 6; // amount of animals that appear each pulse
+const rockChance = 15; // percent chance of a tree being a rock instead
+const [treeResolution, treeScale] = [618, 2.5];
+const [ufoSpeed, ufoScale, ufoTargetAccuracy] = [15, 1.2, 0.1];
+const [animalSpeed, animalPulseLength, animalSize, animalTurnRange, animalResolution] = [
+	8, 1.25, 0.7, 2, 72,
+]; // animalSpeed, distance animals travel in one pulse
 let ufoTarget = null;
 let animals = []; // animals currently on the screen
 let scanned = []; // animals currently being scanned
 let scanPos = center;
-let scannedSpecies = new Set(); // animals that will appear hightlighted in the tray
 let ufoPos = center;
+let scannedSpecies = new Set(); // animals that will appear hightlighted in the tray
 let animalPulse = null;
 let scoreTimer = null;
 const startGame = () => {
@@ -40,32 +35,11 @@ const endGame = () => {
 	animals = [];
 	sfx.victory.play();
 };
-const sourceImages = [
-	"animals.png",
-	"ufo.png",
-	"tree2.png",
-	"spaceParticle.png",
-	"rock.png",
-];
+const sourceImages = ['animals.png', 'ufo.png', 'tree2.png', 'spaceParticle.png', 'rock.png'];
+// biome-ignore format: zzfx sounds
 const animalSpecies = [
-	"orangutan",
-	"flamingo",
-	"crocodile",
-	"snake",
-	"camel",
-	"gorilla",
-	"rhino",
-	"tiger",
-	"leopard",
-	"monkey",
-	"elephant",
-	"turtle",
-	"penguin",
-	"koala",
-	"giraffe",
-	"zebra",
-	"kangeroo",
-	"llama",
+	'orangutan', 'flamingo', 'crocodile', 'snake', 'camel', 'gorilla', 'rhino', 'tiger', 'leopard',
+	'monkey', 'elephant', 'turtle', 'penguin', 'koala', 'giraffe', 'zebra', 'kangeroo', 'llama',
 ];
 // biome-ignore format: zzfx sounds
 const sfx = { // biome-ignore lint:
@@ -73,15 +47,14 @@ const sfx = { // biome-ignore lint:
 	"victory": new Sound([.2,,531,.08,.29,.36,,.2,,,472,.06,.09,,,,,.8,.16,,846]),// biome-ignore lint:
 	"buttonPress": new Sound([.5,,635,.01,.04,.02,3,4.3,,,,,.05,,,,,.61,.01,,-1312])
 }
+setCanvasPixelated(false);
 
 function gameInit() {
 	canvasFixedSize = vec2(690);
 	cameraPos = levelSize.scale(0.5).add(cameraOffset);
 	cameraScale = 500 / levelSize.y;
 	const topTree = (x) => vec2(x, rand(levelSize.y / 2, levelSize.y / 2 + 0.5));
-	const botTree = (x) =>
-		vec2(x, rand(levelSize.y * -0.5 - 0.5, levelSize.y * -0.5 - 1.5));
-
+	const botTree = (x) => vec2(x, rand(levelSize.y * -0.5 - 0.5, levelSize.y * -0.5 - 1.5));
 	trees = plantTrees(vec2(0, rand(-2.5, -2.5)), levelSize.y + 1, [
 		vec2(center.add(topTree(rand(-levelSize.x / 2, -2)))), // trees at the top of clearing
 		vec2(center.add(topTree(rand(-1.5, -1)))),
@@ -96,9 +69,7 @@ function gameInit() {
 	trees = trees.filter((t) => !rocks.includes(t));
 
 	particleTile = tile(0, animalResolution, 3);
-	ufoParticleSettings = [
-		0.75, 0.4, 0.55, 0.001, 0.001, 1, 1, 0, 3.14, 1, 0.2, 0, 0, 1,
-	];
+	ufoParticleSettings = [0.75, 0.4, 0.55, 0.001, 0.001, 1, 1, 0, 3.14, 1, 0.2, 0, 0, 1];
 	// biome-ignore format: particle emitter
 	ufoParticles = new ParticleEmitter(center, 0, 0, 0, 10, 3.14, particleTile, new Color(1, 1, 1, 1), new Color(1, 1, 1, 1), new Color(1, 1, 1, 0), new Color(1, 1, 1, 0), ...ufoParticleSettings);
 }
@@ -112,6 +83,8 @@ function gameUpdate() {
 	if (!mouseOffLevel()) scanPos = mouseLevelPos();
 	if (scanPos) ufoTarget = scanPos;
 	else ufoTarget = mouseLevelPos() ? mouseLevelPos() : center;
+	updateAnimals();
+	updateScoreTimerDisplay();
 
 	// check if ufo movement target has been reached
 	if (ufoPos.distance(ufoTarget) < ufoTargetAccuracy) {
@@ -122,39 +95,28 @@ function gameUpdate() {
 			if (scanned.length > 0) updateScannedSpecies(scanned);
 			else scanned = [-1]; // no animals found
 		}
+		return;
 	}
+
 	// move towerds the movement target
-	else
-		ufoPos = ufoPos.add(
-			ufoTarget
-				.subtract(ufoPos)
-				.normalize()
-				.scale(ufoSpeed * 0.005),
-		);
-
-	if (animalPulse?.elapsed()) {
-		offLevelAnimals = animals.filter((a) => offLevel(a.pos));
-		animals = pulseAnimals(animals);
-		animals.filter((a) => offLevel(a.pos)).map((a) => a.destroy());
-		animalPulse.set(animalPulseLength);
-	} else animals = animals.map((a) => moveAnimal(a));
-
-	updateScoreTimerDisplay();
+	ufoPos = ufoPos.add(
+		ufoTarget
+			.subtract(ufoPos)
+			.normalize()
+			.scale(ufoSpeed * 0.005),
+	);
 }
 function gameUpdatePost() {}
-function gameRender() {
+function gameRender(pos = vec2()) {
 	drawRect(cameraPos.subtract(cameraOffset), levelSize, hsl(0, 0, 0));
 	drawRect(center, levelSize.multiply(vec2(2)), grassGreen);
 	drawRect(center, levelSize.multiply(vec2(1.025)), dirtBrown);
 	drawRect(center, levelSize, spaceBlue()); // tile highlighting
-
-	const pos = vec2();
-	for (pos.x = levelSize.x; pos.x--; )
-		for (pos.y = levelSize.y; pos.y--; ) drawLevelRect(pos);
+	for (pos.x = levelSize.x; pos.x--; ) for (pos.y = levelSize.y; pos.y--; ) drawLevelRect(pos);
 	rocks.map((v) => drawRock(v));
 	animals.map((a) => drawTile(a.pos, vec2(animalSize), a.tileInfo));
 
-	if (scanned.length !== 0) {
+	if (scanned.length > 0) {
 		// player scanned the level
 		drawPos = toLevelPos(ufoPos).add(vec2(0.5));
 		drawRect(drawPos, vec2(1), spaceBlue(0.5)); // scan effect
@@ -171,20 +133,16 @@ function gameRenderPost() {
 	trees.map((v) => drawTree(v));
 }
 
-const isOnHighlightedTile = (pos) =>
-	level(true, false)[pos.x + pos.y * levelSize.x];
+const isOnHighlightedTile = (pos) => level(true, false)[pos.x + pos.y * levelSize.x];
 const isUnderUfo = (pos) => level(false, true)[pos.x + pos.y * levelSize.x];
 const toLevelPos = (pos) => vec2(Math.floor(pos.x), Math.floor(pos.y));
 // ufoPos.distance(toLevelPos(pos).add(0.5)) <= ufoTargetAccuracy;
-const mouseLevelPos = () =>
-	mouseOffLevel() ? null : toLevelPos(mousePos).add(vec2(0.5, 0.5));
+const mouseLevelPos = () => (mouseOffLevel() ? null : toLevelPos(mousePos).add(vec2(0.5, 0.5)));
 const mouseOffLevel = () => offLevel(mousePos);
 // return animals which are on the currently highlighted tile
-const scan = (animals) =>
-	animals.filter((a) => isOnHighlightedTile(toLevelPos(a.pos)));
+const scan = (animals) => animals.filter((a) => isOnHighlightedTile(toLevelPos(a.pos)));
 // const ufoScan = (animals) => animals.filter((a) => isUnderUfo(a.pos));
-const offLevel = (pos) =>
-	pos.x < 0 || pos.y < 0 || pos.x > levelSize.x || pos.y > levelSize.y;
+const offLevel = (pos) => pos.x < 0 || pos.y < 0 || pos.x > levelSize.x || pos.y > levelSize.y;
 const level = (mouse, ufo) => {
 	l = emptyLevel();
 	// mark highlighted tile
@@ -197,31 +155,27 @@ const level = (mouse, ufo) => {
 };
 // a level where none of the tiles are highlighted
 const emptyLevel = (newLevel = []) => {
-	for (x = levelSize.x; x--; )
-		for (y = levelSize.y; y--; ) newLevel[x + y * levelSize.x] = false;
+	for (x = levelSize.x; x--; ) for (y = levelSize.y; y--; ) newLevel[x + y * levelSize.x] = false;
 	return newLevel;
 };
 // renders a tile, with a border if the mouse is over it
 const drawLevelRect = (pos) => {
 	drawPos = pos.add(vec2(0.5));
-	if (mouseOffLevel() || animalPulse == null)
-		drawRect(drawPos, vec2(1), grassGreen);
+	if (mouseOffLevel() || animalPulse == null) drawRect(drawPos, vec2(1), grassGreen);
 	else if (isOnHighlightedTile(pos)) drawRect(drawPos, vec2(0.95), grassGreen);
 	else drawRect(drawPos, vec2(1), grassGreen);
 };
 const updateScoreTimerDisplay = () => {
 	minute = Math.floor(scoreTimer.get() / 60);
 	second = Math.floor(scoreTimer.get() % 60);
-	scoreTimerDisplay.innerText = `${minute < 10 ? "0" : ""}${minute}:${second < 10 ? "0" : ""}${second}`;
+	scoreTimerDisplay.innerText = `${minute < 10 ? '0' : ''}${minute}:${second < 10 ? '0' : ''}${second}`;
 };
 const plantTrees = (pos, row, trees = [], spread = vec2(2, 1.5)) =>
 	!row
 		? trees // recursion ends on row 0
 		: plantTrees(pos, row - 1, [
 				...trees,
-				...randTreeX(spread).map((randX) =>
-					vec2(randX + pos.x, randTreeY(spread, row) + pos.y),
-				),
+				...randTreeX(spread).map((randX) => vec2(randX + pos.x, randTreeY(spread, row) + pos.y)),
 			]);
 const drawRock = (pos) => drawTree(pos, 4);
 const drawTree = (pos, textureIndex = 2) =>
@@ -238,16 +192,11 @@ const randTreeY = (spread, row) => spread.y * row + rand(-0.25, 0.25);
 
 // % species %
 const isScanned = (species) => scannedSpecies.has(species);
-const getSpecies = (animal) =>
-	animalSpecies[Math.floor(animal.tileInfo.pos.x / animalResolution)];
+const getSpecies = (animal) => animalSpecies[Math.floor(animal.tileInfo.pos.x / animalResolution)];
 const updateScannedSpecies = (animals) => {
 	const oldSize = scannedSpecies.size;
-	for (species of animals.map((a) => getSpecies(a)))
-		scannedSpecies.add(species);
+	for (species of animals.map((a) => getSpecies(a))) scannedSpecies.add(species);
 	if (scannedSpecies.size - oldSize > 0) sfx.scan.play();
-
-	// if (scanned[0] === -1) sfx.scan.play(vec2(2.5), 0.25);
-	// else sfx.scan.play(vec2(2.5), 0.5); // louder if animal has been scanned
 };
 const drawTraySpecies = (species, spread = 0.6) => {
 	trayPos = center.add(vec2(-2.4, -5.35));
@@ -258,10 +207,7 @@ const drawTraySpecies = (species, spread = 0.6) => {
 	// top row
 	if (index > animalSpecies.length / 2 - 1)
 		drawTile(
-			vec2(
-				trayPos.x + spread * (index - animalSpecies.length / 2),
-				trayPos.y - spread,
-			),
+			vec2(trayPos.x + spread * (index - animalSpecies.length / 2), trayPos.y - spread),
 			...params,
 		);
 	// bottom row
@@ -269,14 +215,19 @@ const drawTraySpecies = (species, spread = 0.6) => {
 };
 
 // % animals %
+const updateAnimals = () => {
+	if (animalPulse?.elapsed()) {
+		offLevelAnimals = animals.filter((a) => offLevel(a.pos));
+		animals = pulseAnimals(animals);
+		animals.filter((a) => offLevel(a.pos)).map((a) => a.destroy());
+		animalPulse.set(animalPulseLength);
+	} else animals = animals.map((a) => moveAnimal(a));
+};
 const animalTile = (animalIndex = 0) =>
 	tile(vec2(animalResolution * animalIndex, 0), animalResolution, 0);
 const addAnimals = (animals, amount) =>
 	amount > 0 ? addAnimals(withNewAnimal(animals), amount - 1) : animals;
-const withNewAnimal = (animals, pos) => [
-	...animals,
-	animal(pos ? pos : animalStartPos()),
-];
+const withNewAnimal = (animals, pos) => [...animals, animal(pos ? pos : animalStartPos())];
 const animal = (pos, angleSpread = 0.5) =>
 	new EngineObject(
 		pos,
@@ -308,6 +259,5 @@ const pulseAnimals = (animals) =>
 	addAnimals(animals, newAnimalCount)
 		.filter((a) => !offLevelAnimals.includes(a))
 		.map((a) => turnAnimal(a));
-setCanvasPixelated(false);
 // biome-ignore format: engineInit
 engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, gameRenderPost, sourceImages);
