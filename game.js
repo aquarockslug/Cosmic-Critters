@@ -1,4 +1,4 @@
-// animal scan by Aquarock
+// cosmic critters by Aquarock
 //////////////////////////
 const cameraOffset = vec2(0, -0.5);
 const scoreTimerDisplay = document.getElementById('scoreTimerDisplay');
