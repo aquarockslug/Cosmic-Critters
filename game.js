@@ -2,7 +2,6 @@
 //////////////////////////
 const cameraOffset = vec2(0, -0.5);
 const scoreTimerDisplay = document.getElementById('scoreTimerDisplay');
-const backgroundColor = hsl(0, 0, 0.2);
 const grassGreen = rgb(0.34, 0.49, 0.27);
 const dirtBrown = rgb(0.61, 0.46, 0.33);
 const spaceBlue = (a = 1) => rgb(0.32, 0.61, 0.6, a);
