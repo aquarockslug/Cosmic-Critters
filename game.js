@@ -10,7 +10,7 @@ const center = vec2(levelSize.x / 2, levelSize.y / 2);
 const newAnimalCount = 6; // amount of animals that appear each pulse
 const rockChance = 15; // percent chance of a tree being a rock instead
 const [treeResolution, treeScale] = [618, 2.5];
-const [ufoSpeed, ufoScale, ufoTargetAccuracy] = [15, 1.2, 0.1];
+const [ufoSpeed, ufoScale, ufoTargetAccuracy] = [25, 1.2, 0.1];
 const [animalSpeed, animalPulseLength, animalSize, animalTurnRange, animalResolution] = [
 	8, 1.25, 0.7, 2, 72,
 ]; // animalSpeed, distance animals travel in one pulse
